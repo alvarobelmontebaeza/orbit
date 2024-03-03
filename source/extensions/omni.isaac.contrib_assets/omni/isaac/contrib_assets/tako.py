@@ -64,7 +64,8 @@ TAKO_CFG = ArticulationCfg(
             stiffness=0.0,
             damping=0.0,
         )
-    }
+    },
+    soft_joint_pos_limit_factor=0.95, # Limit factor for joint position limits
 )
 
 
