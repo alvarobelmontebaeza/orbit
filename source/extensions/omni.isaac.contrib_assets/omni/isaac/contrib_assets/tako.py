@@ -39,11 +39,11 @@ TAKO_CFG = ArticulationCfg(
         pos=(0.0, 0.0, 1.0),
         joint_pos={
             ".*shoulder_pan_joint": 0.0, # all HIP joints
-            ".*shoulder_lift_joint": -0.7854, # all shoulder joints
-            "LF_elbow_joint": -0.7854, # left front elbow
-            "LH_elbow_joint": -0.7854, # left hind elbow
-            "RF_elbow_joint": 0.7854, # right front elbow
-            "RH_elbow_joint": 0.7854, # right hind elbow
+            ".*shoulder_lift_joint": 0.0, # all shoulder joints
+            "LF_elbow_joint": 0.0, # left front elbow
+            "LH_elbow_joint": 0.0, # left hind elbow
+            "RF_elbow_joint": 0.0, # right front elbow
+            "RH_elbow_joint": 0.0, # right hind elbow
             ".*wrist_1_joint": 0.0, # all wrist 1 joints
             ".*wrist_2_joint": 0.0, # all wrist 2 joints
             ".*wrist_3_joint": 0.0, # all wrist 3 joints
