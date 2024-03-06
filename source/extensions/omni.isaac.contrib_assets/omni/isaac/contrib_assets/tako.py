@@ -9,7 +9,7 @@
 """
 
 import omni.isaac.orbit.sim as sim_utils
-from omni.isaac.orbit.actuators import ImplicitActuatorCfg, DCMotorCfg
+from omni.isaac.orbit.actuators import ImplicitActuatorCfg
 from omni.isaac.orbit.assets.articulation import ArticulationCfg
 
 ##
