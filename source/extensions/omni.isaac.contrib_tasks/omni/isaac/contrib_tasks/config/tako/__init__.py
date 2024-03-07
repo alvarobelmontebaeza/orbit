@@ -12,7 +12,7 @@ from . import agents, flat_env_cfg, rough_env_cfg
 ##
 
 gym.register(
-    id="Isaac-Velocity-Flat-Tako-v0",
+    id="Isaac-Contrib-Velocity-Flat-Tako-v0",
     entry_point="omni.isaac.orbit.envs:RLTaskEnv",
     disable_env_checker=True,
     kwargs={
@@ -23,7 +23,7 @@ gym.register(
 )
 
 gym.register(
-    id="Isaac-Velocity-Flat-Tako-Play-v0",
+    id="Isaac-Contrib-Velocity-Flat-Tako-Play-v0",
     entry_point="omni.isaac.orbit.envs:RLTaskEnv",
     disable_env_checker=True,
     kwargs={
@@ -33,7 +33,7 @@ gym.register(
 )
 
 gym.register(
-    id="Isaac-Velocity-Rough-Tako-v0",
+    id="Isaac-Contrib-Velocity-Rough-Tako-v0",
     entry_point="omni.isaac.orbit.envs:RLTaskEnv",
     disable_env_checker=True,
     kwargs={
@@ -43,7 +43,7 @@ gym.register(
 )
 
 gym.register(
-    id="Isaac-Velocity-Rough-Tako-Play-v0",
+    id="Isaac-Contrib-Velocity-Rough-Tako-Play-v0",
     entry_point="omni.isaac.orbit.envs:RLTaskEnv",
     disable_env_checker=True,
     kwargs={
