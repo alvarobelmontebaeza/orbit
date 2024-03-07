@@ -1,4 +1,4 @@
-# Copyright (c) 2022-2024, The ORBIT Project Developers.
+# Copyright (c) 2024, Alvaro Belmonte Baeza
 # All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
@@ -17,17 +17,17 @@ EXTENSION_TOML_DATA = toml.load(os.path.join(EXTENSION_PATH, "config", "extensio
 
 # Installation operation
 setup(
-    name="omni-isaac-orbit_assets",
-    author="ORBIT Project Developers",
-    maintainer="Mayank Mittal",
-    maintainer_email="mittalma@ethz.ch",
+    name="omni-isaac-contrib_assets",
+    author="Alvaro Belmonte Baeza",
+    maintainer="Alvaro Belmonte Baeza",
+    maintainer_email="alvaro.belmonte@ua.es",
     url=EXTENSION_TOML_DATA["package"]["repository"],
     version=EXTENSION_TOML_DATA["package"]["version"],
     description=EXTENSION_TOML_DATA["package"]["description"],
     keywords=EXTENSION_TOML_DATA["package"]["keywords"],
     include_package_data=True,
     python_requires=">=3.10",
-    packages=["omni.isaac.orbit_assets"],
+    packages=["omni.isaac.contrib_assets"],
     classifiers=[
         "Natural Language :: English",
         "Programming Language :: Python :: 3.10",
