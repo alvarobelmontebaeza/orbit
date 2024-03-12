@@ -37,6 +37,6 @@ def feet_contact_num(env: RLTaskEnv, threshold: int, sensor_cfg: SceneEntityCfg)
     net_contact_forces = contact_sensor.data.net_forces_w_history
     # check if the number of feet in contact with the ground is less than the threshold
     feet_in_contact = torch.sum(
-        net_contact_forces[:, :, sensor_cfg.body_ids, 2] > 0, dim=1
+        contact_sensor.data.current_contact_time[:, sensor_cfg.body_names] > 0.0, dim=1
     )
     return feet_in_contact < threshold

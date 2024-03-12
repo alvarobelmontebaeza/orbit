@@ -37,20 +37,19 @@ Sensors.
 
 def feet_contacts(env: BaseEnv, sensor_cfg: SceneEntityCfg) -> torch.Tensor:
     """
-    Calculates the number of feet in contact with the ground based on a force threshold in the Z direction.
+    Determines the number of feet in contact with the ground based on a force threshold in the Z direction.
 
     Args:
         env (BaseEnv): The environment object.
-        sensor_cfg (SceneEntityCfg): The configuration of the sensor.
+        sensor_cfg (SceneEntityCfg): The configuration for the scene entity.
 
     Returns:
-        torch.Tensor: A tensor representing the number of feet in contact with the ground.
+        torch.Tensor: A tensor indicating which feet are in contact with the ground.
     """
     # extract the used quantities (to enable type-hinting)
     contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
-    net_contact_forces = contact_sensor.data.net_forces_w_history
     # check the number of feet in contact with the ground by using a force threshold in the Z direction
-    feet_in_contact = net_contact_forces[:, :, sensor_cfg.body_ids, 2] > 1.0
+    feet_in_contact = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids] > 0.0
 
     return feet_in_contact
 
