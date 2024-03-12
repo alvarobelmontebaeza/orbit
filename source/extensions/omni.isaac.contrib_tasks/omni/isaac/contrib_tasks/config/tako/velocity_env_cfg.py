@@ -24,7 +24,8 @@ from omni.isaac.orbit.terrains import TerrainImporterCfg
 from omni.isaac.orbit.utils import configclass
 from omni.isaac.orbit.utils.noise import AdditiveUniformNoiseCfg as Unoise
 
-import omni.isaac.orbit_tasks.locomotion.velocity.mdp as mdp
+#import omni.isaac.orbit_tasks.locomotion.velocity.mdp as mdp
+import omni.isaac.contrib_tasks.config.tako.mdp as mdp
 
 ##
 # Pre-defined configs
@@ -244,7 +245,7 @@ class RewardsCfg:
     undesired_contacts = RewTerm(
         func=mdp.undesired_contacts,
         weight=-1.0,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*THIGH"), "threshold": 1.0}, #TODO: Modify body names
+        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*upper_arm_link", ".*forearm_link", ".*wrist.*"]), "threshold": 1.0}, 
     )
     # -- optional penalties
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=0.0)
@@ -258,9 +259,12 @@ class TerminationsCfg:
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     base_contact = DoneTerm(
         func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="body"), "threshold": 1.0},
+        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*body"), "threshold": 1.0},
     )
-    # TODO: Add termination if no feet contact
+    no_feet_contact = DoneTerm(
+        func=mdp.feet_contact_num,
+        params={"threshold": 1, "sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*gecko"])},
+    )
 
 
 @configclass
