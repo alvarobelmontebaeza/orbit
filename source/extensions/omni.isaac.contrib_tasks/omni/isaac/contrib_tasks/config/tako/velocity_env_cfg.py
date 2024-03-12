@@ -253,6 +253,7 @@ class RewardsCfg:
     # -- optional penalties
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=0.0)
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
+    dof_power = RewTerm(func=mdp.joint_power_l2, weight=0.0)
 
 
 @configclass
@@ -266,7 +267,7 @@ class TerminationsCfg:
     )
     no_feet_contact = DoneTerm(
         func=mdp.feet_contact_num,
-        params={"threshold": 1, "sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*gecko"])},
+        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*gecko"]), "threshold": 1},
     )
 
 
@@ -305,7 +306,7 @@ class LocomotionVelocityRoughEnvCfg(RLTaskEnvCfg):
         self.episode_length_s = 20.0
         # simulation settings
         self.sim.dt = 0.005
-        self.sim.gravity = (0.0, 0.0, -9.81)
+        self.sim.gravity = (0.0, 0.0, -4.9)
         self.sim.disable_contact_processing = True
         self.sim.physics_material = self.scene.terrain.physics_material
         # update sensor update periods
