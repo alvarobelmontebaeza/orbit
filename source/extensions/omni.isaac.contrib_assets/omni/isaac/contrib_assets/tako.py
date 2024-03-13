@@ -36,7 +36,7 @@ TAKO_CFG = ArticulationCfg(
         ),
     ),
     init_state=ArticulationCfg.InitialStateCfg(
-        pos=(0.0, 0.0, 1.0),
+        pos=(0.0, 0.0, 0.6),
         joint_pos={
             ".*shoulder_pan_joint": 0.0, # all HIP joints
             ".*shoulder_lift_joint": 0.0, # all shoulder joints
