@@ -1,6 +1,123 @@
 Changelog
 ---------
 
+0.13.0 (2024-03-12)
+~~~~~~~~~~~~~~~~~~~
+
+Added
+^^^^^
+
+* Added support for the following data types inside the :class:`omni.isaac.orbit.sensors.Camera` class:
+  ``instance_segmentation_fast`` and ``instance_id_segmentation_fast``. These are are GPU-supported annotations
+  and are faster than the regular annotations.
+
+Fixed
+^^^^^
+
+* Fixed handling of semantic filtering inside the :class:`omni.isaac.orbit.sensors.Camera` class. Earlier,
+  the annotator was given ``semanticTypes`` as an argument. However, with Isaac Sim 2023.1, the annotator
+  does not accept this argument. Instead the mapping needs to be set to the synthetic data interface directly.
+* Fixed the return shape of colored images for segmentation data types inside the
+  :class:`omni.isaac.orbit.sensors.Camera` class. Earlier, the images were always returned as ``int32``. Now,
+  they are casted to ``uint8`` 4-channel array before returning if colorization is enabled for the annotation type.
+
+Removed
+^^^^^^^
+
+* Dropped support for ``instance_segmentation`` and ``instance_id_segmentation`` annotations in the
+  :class:`omni.isaac.orbit.sensors.Camera` class. Their "fast" counterparts should be used instead.
+* Renamed the argument :attr:`omni.isaac.orbit.sensors.CameraCfg.semantic_types` to
+  :attr:`omni.isaac.orbit.sensors.CameraCfg.semantic_filter`. This is more aligned with Replicator's terminology
+  for semantic filter predicates.
+* Replaced the argument :attr:`omni.isaac.orbit.sensors.CameraCfg.colorize` with separate colorized
+  arguments for each annotation type (:attr:`~omni.isaac.orbit.sensors.CameraCfg.colorize_instance_segmentation`,
+  :attr:`~omni.isaac.orbit.sensors.CameraCfg.colorize_instance_id_segmentation`, and
+  :attr:`~omni.isaac.orbit.sensors.CameraCfg.colorize_semantic_segmentation`).
+
+
+0.12.4 (2024-03-11)
+~~~~~~~~~~~~~~~~~~~
+
+Fixed
+^^^^^
+
+
+* Adapted randomization terms to deal with ``slice`` for the body indices. Earlier, the terms were not
+  able to handle the slice object and were throwing an error.
+* Added ``slice`` type-hinting to all body and joint related methods in the rigid body and articulation
+  classes. This is to make it clear that the methods can handle both list of indices and slices.
+
+
+0.12.3 (2024-03-11)
+~~~~~~~~~~~~~~~~~~~
+
+Fixed
+^^^^^
+
+* Added signal handler to the :class:`omni.isaac.orbit.app.AppLauncher` class to catch the ``SIGINT`` signal
+  and close the application gracefully. This is to prevent the application from crashing when the user
+  presses ``Ctrl+C`` to close the application.
+
+
+0.12.2 (2024-03-10)
+~~~~~~~~~~~~~~~~~~~
+
+Added
+^^^^^
+
+* Added observation terms for states of a rigid object in world frame.
+* Added randomization terms to set root state with randomized orientation and joint state within user-specified limits.
+* Added reward term for penalizing specific termination terms.
+
+Fixed
+^^^^^
+
+* Improved sampling of states inside randomization terms. Earlier, the code did multiple torch calls
+  for sampling different components of the vector. Now, it uses a single call to sample the entire vector.
+
+
+0.12.1 (2024-03-09)
+~~~~~~~~~~~~~~~~~~~
+
+Added
+^^^^^
+
+* Added an option to the last actions observation term to get a specific term by name from the action manager.
+  If None, the behavior remains the same as before (the entire action is returned).
+
+
+0.12.0 (2024-03-08)
+~~~~~~~~~~~~~~~~~~~
+
+Added
+^^^^^
+
+* Added functionality to sample flat patches on a generated terrain. This can be configured using
+  :attr:`omni.isaac.orbit.terrains.SubTerrainBaseCfg.flat_patch_sampling` attribute.
+* Added a randomization function for setting terrain-aware root state. Through this, an asset can be
+  reset to a randomly sampled flat patches.
+
+Fixed
+^^^^^
+
+* Separated normal and terrain-base position commands. The terrain based commands rely on the
+  terrain to sample flat patches for setting the target position.
+* Fixed command resample termination function.
+
+Changed
+^^^^^^^
+
+* Added the attribute :attr:`omni.isaac.orbit.envs.mdp.commands.UniformVelocityCommandCfg.heading_control_stiffness`
+  to control the stiffness of the heading control term in the velocity command term. Earlier, this was
+  hard-coded to 0.5 inside the term.
+
+Removed
+^^^^^^^
+
+* Removed the function :meth:`sample_new_targets` in the terrain importer. Instead the attribute
+  :attr:`omni.isaac.orbit.terrains.TerrainImporter.flat_patches` should be used to sample new targets.
+
+
 0.11.3 (2024-03-04)
 ~~~~~~~~~~~~~~~~~~~
 
