@@ -171,7 +171,7 @@ class RandomizationCfg:
     add_base_mass = RandTerm(
         func=mdp.add_body_mass,
         mode="startup",
-        params={"asset_cfg": SceneEntityCfg("robot", body_names="base"), "mass_range": (-5.0, 5.0)},
+        params={"asset_cfg": SceneEntityCfg("robot", body_names="body"), "mass_range": (-5.0, 5.0)},
     )
 
     # reset
@@ -179,7 +179,7 @@ class RandomizationCfg:
         func=mdp.apply_external_force_torque,
         mode="reset",
         params={
-            "asset_cfg": SceneEntityCfg("robot", body_names="base"),
+            "asset_cfg": SceneEntityCfg("robot", body_names="body"),
             "force_range": (0.0, 0.0),
             "torque_range": (-0.0, 0.0),
         },
@@ -224,29 +224,28 @@ class RewardsCfg:
     """Reward terms for the MDP."""
 
     # -- task
-    progress = RewTerm(func=classic_mdp.progress_reward, weight=1.0, params={"target_pos": (10.0, 0.0, 0.0)})
-    heading_proj = RewTerm(func=classic_mdp.move_to_target_bonus, weight=0.5, params={"threshold": 0.8, "target_pos": (10.0, 0.0, 0.0)})
-    alive = RewTerm(func=classic_mdp.is_alive, weight=2.0)
+    position_tracking = RewTerm(func=mdp.position_tracking_reward, weight=10.0, params={"command_name": "base_position"})
+    heading_tracking = RewTerm(func=mdp.heading_tracking_reward, weight=5.0, params={"command_name": "base_position"})
     # -- penalties
-    lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0)
-    ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
+    dof_vel_l2 = RewTerm(func=mdp.joint_vel_l2, weight=-0.001)
     dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-5)
-    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-2.5e-7)
+    body_lin_acc = RewTerm(func=mdp.body_lin_acc_l2, weight=-1.0e-3)
+    body_ang_acc = RewTerm(func=mdp.body_ang_acc_l2, weight=-1.0e-3 * 0.02)
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.01)
-    feet_air_time = RewTerm(
-        func=mdp.feet_air_time,
-        weight=0.125,
-        params={
-            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*gecko"),
-            "command_name": "base_velocity",
-            "threshold": 0.5,
-        },
+    feet_contact_force = RewTerm(   # this is the contact force of the feet with the ground
+        func=mdp.feet_contact_force,
+        weight=-1.0e-6,
+        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*gecko")},
     )
+    move_in_direction = RewTerm(func=mdp.move_in_direction_reward, weight=1.0, params={"command_name": "base_position"})
     undesired_contacts = RewTerm(
         func=mdp.undesired_contacts,
         weight=-1.0,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*upper_arm_link", ".*forearm_link", ".*wrist.*"]), "threshold": 1.0}, 
     )
+    stumble = RewTerm(func=mdp.stumble, weight=-1.0, params={"factor": 2.0, "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*gecko")})
+    # Termination penalties
+    base_contact = RewTerm(func=mdp.illegal_contact, weight=-200.0, params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*body"), "threshold": 1.0})
     # -- optional penalties
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=0.0)
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
@@ -266,6 +265,7 @@ class TerminationsCfg:
         func=mdp.feet_contact_num,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*gecko"]), "threshold": 1},
     )
+
 
 
 @configclass
@@ -307,7 +307,6 @@ class LocomotionPositionRoughEnvCfg(RLTaskEnvCfg):
         self.sim.disable_contact_processing = True
         self.sim.physics_material = self.scene.terrain.physics_material
         # Reward settings (override)
-        self.rewards.progress.params["target_pos"] = self.observations.policy.target_position
         self.rewards.heading_proj.params["target_pos"] = self.observations.policy.target_position
         # update sensor update periods
         # we tick all the sensors based on the smallest update period (physics update period)
