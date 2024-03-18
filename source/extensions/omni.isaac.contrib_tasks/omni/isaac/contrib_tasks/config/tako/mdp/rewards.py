@@ -33,6 +33,25 @@ def stumble(env: RLTaskEnv, factor: float, sensor_cfg: SceneEntityCfg) -> torch.
     # compute the penalty
     return torch.sum(violation.clip(min=0.0), dim=1)
 
+def feet_contact_force(env: RLTaskEnv, threshold: float, sensor_cfg: SceneEntityCfg) -> torch.Tensor:
+    """
+    Calculates the penalty for feet contact force exceeding a given threshold.
+
+    Args:
+        env (RLTaskEnv): The RLTaskEnv object representing the environment.
+        threshold (float): The threshold value for the contact force.
+        sensor_cfg (SceneEntityCfg): The configuration of the contact sensor.
+
+    Returns:
+        torch.Tensor: The penalty for exceeding the contact force threshold.
+    """
+
+    # extract the used quantities (to enable type-hinting)
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    net_contact_forces = contact_sensor.data.net_forces_w
+    penalty = torch.max(torch.norm(net_contact_forces[:, sensor_cfg.body_ids, :], dim=2) - threshold)
+    return torch.sum(penalty, dim=1)
+
 
 """
 Joint Penalties
