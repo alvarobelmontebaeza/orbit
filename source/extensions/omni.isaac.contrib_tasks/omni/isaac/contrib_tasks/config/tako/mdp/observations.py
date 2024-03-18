@@ -60,3 +60,35 @@ Actions.
 """
 Commands.
 """
+
+def target_2d_position(env: RLTaskEnv, command_name: str) -> torch.Tensor:
+    """
+    Get the 2D position of the target for a given command.
+
+    Args:
+        env (RLTaskEnv): The RLTaskEnv object.
+        command_name (str): The name of the command.
+
+    Returns:
+        torch.Tensor: A tensor containing the 2D position of the target.
+    """
+
+    command = env.command_manager.get_command(command_name)
+    # Obtain desired 2d position
+    return command[:, :2]
+
+def target_heading(env: RLTaskEnv, command_name: str) -> torch.Tensor:
+    """
+    Get the target heading from the command.
+
+    Args:
+        env (RLTaskEnv): The RLTaskEnv object.
+        command_name (str): The name of the command.
+
+    Returns:
+        torch.Tensor: The target heading.
+
+    """
+    command = env.command_manager.get_command(command_name)
+    # obtain the desired heading
+    return command[:, 3]
