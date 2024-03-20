@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """Package containing task implementations for various robotic environments."""
-
+import gymnasium as gym #noqa: F401
 import os
 import toml
 

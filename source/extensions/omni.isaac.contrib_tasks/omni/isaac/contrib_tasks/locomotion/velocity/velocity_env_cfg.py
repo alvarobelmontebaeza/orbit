@@ -25,12 +25,13 @@ from omni.isaac.orbit.utils import configclass
 from omni.isaac.orbit.utils.noise import AdditiveUniformNoiseCfg as Unoise
 
 #import omni.isaac.orbit_tasks.locomotion.velocity.mdp as mdp
-import omni.isaac.contrib_tasks.config.tako.mdp as mdp
+import omni.isaac.contrib_tasks.locomotion.velocity.mdp as mdp
 
 ##
 # Pre-defined configs
 ##
 from omni.isaac.orbit.terrains.config.rough import ROUGH_TERRAINS_CFG  # isort: skip
+from omni.isaac.contrib_assets.tako import TAKO_CFG  # isort: skip
 
 
 ##
@@ -62,7 +63,7 @@ class MySceneCfg(InteractiveSceneCfg):
         debug_vis=False,
     )
     # robots
-    robot: ArticulationCfg = MISSING
+    robot: ArticulationCfg = TAKO_CFG #MISSING
     # sensors
     height_scanner = RayCasterCfg(
         prim_path="{ENV_REGEX_NS}/Robot/body",
@@ -110,7 +111,7 @@ class CommandsCfg:
 class ActionsCfg:
     """Action specifications for the MDP."""
 
-    joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=[".*"], scale=0.5, use_default_offset=True)
+    joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=[".*"], scale=0.5, use_default_offset=False)
 
 
 @configclass
