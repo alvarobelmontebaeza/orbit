@@ -14,7 +14,7 @@ from omni.isaac.orbit.envs import RLTaskEnvCfg
 from omni.isaac.orbit.managers import CurriculumTermCfg as CurrTerm
 from omni.isaac.orbit.managers import ObservationGroupCfg as ObsGroup
 from omni.isaac.orbit.managers import ObservationTermCfg as ObsTerm
-from omni.isaac.orbit.managers import RandomizationTermCfg as RandTerm
+from omni.isaac.orbit.managers import EventTermCfg as EventTerm
 from omni.isaac.orbit.managers import RewardTermCfg as RewTerm
 from omni.isaac.orbit.managers import SceneEntityCfg
 from omni.isaac.orbit.managers import TerminationTermCfg as DoneTerm
@@ -153,11 +153,11 @@ class ObservationsCfg:
 
 
 @configclass
-class RandomizationCfg:
-    """Configuration for randomization."""
+class EventCfg:
+    """Configuration for Event."""
 
     # startup
-    physics_material = RandTerm(
+    physics_material = EventTerm(
         func=mdp.randomize_rigid_body_material,
         mode="startup",
         params={
@@ -169,14 +169,14 @@ class RandomizationCfg:
         },
     )
 
-    add_base_mass = RandTerm(
+    add_base_mass = EventTerm(
         func=mdp.add_body_mass,
         mode="startup",
         params={"asset_cfg": SceneEntityCfg("robot", body_names="body"), "mass_range": (-5.0, 5.0)},
     )
 
     # reset
-    base_external_force_torque = RandTerm(
+    base_external_force_torque = EventTerm(
         func=mdp.apply_external_force_torque,
         mode="reset",
         params={
@@ -186,7 +186,7 @@ class RandomizationCfg:
         },
     )
 
-    reset_base = RandTerm(
+    reset_base = EventTerm(
         func=mdp.reset_root_state_uniform,
         mode="reset",
         params={
@@ -202,7 +202,7 @@ class RandomizationCfg:
         },
     )
 
-    reset_robot_joints = RandTerm(
+    reset_robot_joints = EventTerm(
         func=mdp.reset_joints_by_scale,
         mode="reset",
         params={
@@ -212,7 +212,7 @@ class RandomizationCfg:
     )
 
     # interval
-    push_robot = RandTerm(
+    push_robot = EventTerm(
         func=mdp.push_by_setting_velocity,
         mode="interval",
         interval_range_s=(10.0, 15.0),
@@ -294,7 +294,7 @@ class LocomotionPositionRoughEnvCfg(RLTaskEnvCfg):
     # MDP settings
     rewards: RewardsCfg = RewardsCfg()
     terminations: TerminationsCfg = TerminationsCfg()
-    randomization: RandomizationCfg = RandomizationCfg()
+    events: EventCfg = EventCfg()
     curriculum: CurriculumCfg = CurriculumCfg()
 
     def __post_init__(self):
@@ -307,8 +307,6 @@ class LocomotionPositionRoughEnvCfg(RLTaskEnvCfg):
         self.sim.gravity = (0.0, 0.0, -4.9)
         self.sim.disable_contact_processing = True
         self.sim.physics_material = self.scene.terrain.physics_material
-        # Reward settings (override)
-        self.rewards.heading_proj.params["target_pos"] = self.observations.policy.target_position
         # update sensor update periods
         # we tick all the sensors based on the smallest update period (physics update period)
         if self.scene.height_scanner is not None:
