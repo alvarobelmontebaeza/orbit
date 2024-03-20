@@ -1,6 +1,59 @@
 Changelog
 ---------
 
+0.15.0 (2024-03-17)
+~~~~~~~~~~~~~~~~~~~
+
+Deprecated
+^^^^^^^^^^
+
+* Renamed :class:`omni.isaac.orbit.managers.RandomizationManager` to :class:`omni.isaac.orbit.managers.EventManager`
+  class for clarification as the manager takes care of events such as reset in addition to pure randomizations.
+* Renamed :class:`omni.isaac.orbit.managers.RandomizationTermCfg` to :class:`omni.isaac.orbit.managers.EventTermCfg`
+  for consistency with the class name change.
+
+
+0.14.1 (2024-03-16)
+~~~~~~~~~~~~~~~~~~~
+
+Added
+^^^^^
+
+* Added simulation schemas for joint drive and fixed tendons. These can be configured for assets imported
+  from file formats.
+* Added logging of tendon properties to the articulation class (if they are present in the USD prim).
+
+
+0.14.0 (2024-03-15)
+~~~~~~~~~~~~~~~~~~~
+
+Fixed
+^^^^^
+
+* Fixed the ordering of body names used in the :class:`omni.isaac.orbit.assets.Articulation` class. Earlier,
+  the body names were not following the same ordering as the bodies in the articulation. This led
+  to issues when using the body names to access data related to the links from the articulation view
+  (such as Jacobians, mass matrices, etc.).
+
+Removed
+^^^^^^^
+
+* Removed the attribute :attr:`body_physx_view` from the :class:`omni.isaac.orbit.assets.RigidObject`
+  and :class:`omni.isaac.orbit.assets.Articulation` classes. These were causing confusions when used
+  with articulation view since the body names were not following the same ordering.
+
+
+0.13.1 (2024-03-14)
+~~~~~~~~~~~~~~~~~~~
+
+Removed
+^^^^^^^
+
+* Removed the :mod:`omni.isaac.orbit.compat` module. This module was used to provide compatibility
+  with older versions of Isaac Sim. It is no longer needed since we have most of the functionality
+  absorbed into the main classes.
+
+
 0.13.0 (2024-03-12)
 ~~~~~~~~~~~~~~~~~~~
 
