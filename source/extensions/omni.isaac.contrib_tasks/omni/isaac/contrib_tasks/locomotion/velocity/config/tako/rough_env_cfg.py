@@ -20,7 +20,7 @@ class TakoRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # post init of parent
         super().__post_init__()
         # switch robot to Tako
-        self.scene.robot = TAKO_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+        self.scene.robot = TAKO_CFG.replace(prim_path="{ENV_REGEX_NS}/tako")
 
 
 @configclass
