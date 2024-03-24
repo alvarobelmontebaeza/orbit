@@ -17,7 +17,7 @@ from omni.isaac.orbit.assets.articulation import ArticulationCfg
 ##
 TAKO_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path="/home/alvaro/NVOmniverse/Assets/tako_backup.usd",
+        usd_path="/home/alvaro/Desktop/tako_backup.usd",
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
