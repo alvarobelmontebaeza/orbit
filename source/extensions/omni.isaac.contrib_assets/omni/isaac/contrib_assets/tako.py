@@ -9,7 +9,7 @@
 """
 
 import omni.isaac.orbit.sim as sim_utils
-from omni.isaac.orbit.actuators import ImplicitActuatorCfg
+from omni.isaac.orbit.actuators import ImplicitActuatorCfg, IdealPDActuatorCfg
 from omni.isaac.orbit.assets.articulation import ArticulationCfg
 
 ##
@@ -36,7 +36,7 @@ TAKO_CFG = ArticulationCfg(
         ),
     ),
     init_state=ArticulationCfg.InitialStateCfg(
-        pos=(0.0, 0.0, 0.6),
+        pos=(0.0, 0.0, 0.65),
         joint_pos={
             ".*shoulder_pan_joint": 0.0, # all HIP joints
             ".*shoulder_lift_joint": 0.0, # all shoulder joints
@@ -50,19 +50,19 @@ TAKO_CFG = ArticulationCfg(
         },
     ),
     actuators={
-        "legs": ImplicitActuatorCfg(   
+        "legs": IdealPDActuatorCfg(
             joint_names_expr=[".*shoulder_pan_joint", ".*shoulder_lift_joint", ".*elbow_joint"],
             velocity_limit=None,
             effort_limit=150.0,
-            stiffness=0.0,
-            damping=0.0,
+            stiffness=100.0,
+            damping=10.0,
         ),
-        "feet": ImplicitActuatorCfg(
+        "feed": IdealPDActuatorCfg(
             joint_names_expr=[".*wrist_.*_joint"],
             velocity_limit=None,
-            effort_limit=28.0,
-            stiffness=0.0,
-            damping=0.0,
+            effort_limit=50.0,
+            stiffness=100.0,
+            damping=10.0,
         )
     },
     soft_joint_pos_limit_factor=0.95, # Limit factor for joint position limits
