@@ -50,7 +50,7 @@ def feet_contact_force(env: RLTaskEnv, threshold: float, sensor_cfg: SceneEntity
     contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
     net_contact_forces = contact_sensor.data.net_forces_w
     penalty = torch.max(torch.norm(net_contact_forces[:, sensor_cfg.body_ids, :], dim=2) - threshold)
-    return torch.sum(penalty, dim=1)
+    return penalty
 
 
 """
@@ -89,10 +89,10 @@ def position_tracking_reward(env: RLTaskEnv, command_name: str, asset_cfg: Scene
     asset: Articulation = env.scene[asset_cfg.name]
     command = env.command_manager.get_command(command_name)
     # obtain the desired and current positions
-    des_pos_b = command[:, :2] # Only x and y 
+    des_pos_b = command[:, :3]
     des_pos_w, _ = combine_frame_transforms(asset.data.root_state_w[:, :3], asset.data.root_state_w[:, 3:7], des_pos_b)
-    curr_pos_w = asset.data.body_state_w[:, asset_cfg.body_ids[0], :2]  # type: ignore
-    return (1.0 - 0.5 * torch.norm(curr_pos_w - des_pos_w, dim=1))
+    curr_pos_w = asset.data.root_pos_w
+    return (1.0 - 0.5 * torch.norm(curr_pos_w[:, :2] - des_pos_w[:, :2], dim=1))
 
 def heading_tracking_reward(env: RLTaskEnv, command_name: str, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """
@@ -115,7 +115,7 @@ def heading_tracking_reward(env: RLTaskEnv, command_name: str, asset_cfg: SceneE
     # compute the current heading direction
     curr_heading_w = torch.atan2(asset.data.root_quat_w[:, 1], asset.data.root_quat_w[:, 0])
 
-    return (1.0 - 0.5 * torch.norm(curr_heading_w - des_heading_w, dim=1))
+    return (1.0 - 0.5 * torch.abs(curr_heading_w - des_heading_w))
 
 def move_in_direction_reward(env: RLTaskEnv, command_name: str, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """
@@ -136,7 +136,7 @@ def move_in_direction_reward(env: RLTaskEnv, command_name: str, asset_cfg: Scene
     # obtain the desired heading direction
     target_vec = command[:, :2] - asset.data.root_state_w[:, :2]
     # compute the current heading direction
-    curr_vel_direction = asset.data.body_lin_vel_w[:, asset_cfg.body_ids[0], :2]  # type: ignore
+    curr_vel_direction = asset.data.root_lin_vel_w[:, :2]  # type: ignore
     # compute the dot product between the current and desired heading directions
     return torch.cosine_similarity(curr_vel_direction, target_vec, dim=1)
 
