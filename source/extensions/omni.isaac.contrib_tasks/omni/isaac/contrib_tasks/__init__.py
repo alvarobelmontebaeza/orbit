@@ -50,7 +50,13 @@ __version__ = ORBIT_CONTRIB_TASKS_METADATA["package"]["version"]
 
 import gymnasium as gym
 
-from .locomotion.velocity.config.tako import agents, flat_env_cfg, rough_env_cfg
+from .locomotion.velocity.config.tako import agents as vel_agents
+from .locomotion.velocity.config.tako import flat_env_cfg as vel_flat_env_cfg
+from .locomotion.velocity.config.tako import rough_env_cfg as vel_rough_env_cfg
+
+from .locomotion.position.config.tako import agents as pos_agents
+from .locomotion.position.config.tako import rough_env_cfg as pos_rough_env_cfg
+from .locomotion.position.config.tako import flat_env_cfg as pos_flat_env_cfg
 
 ##
 # Register Gym environments.
@@ -63,14 +69,16 @@ gym.register(
     kwargs={"cfg_entry_point": "omni.isaac.contrib_tasks.<your-env-package-cfg>:<your-env-class-cfg>"},
 )
 '''
-
+##
+# VELOCITY TASK ENVIRONMENTS
+##
 gym.register(
     id="Isaac-Contrib-Velocity-Flat-Tako-v0",
     entry_point="omni.isaac.orbit.envs:RLTaskEnv",
     disable_env_checker=True,
     kwargs={
-        "env_cfg_entry_point": flat_env_cfg.TakoFlatEnvCfg,
-        "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.TakoFlatPPORunnerCfg,
+        "env_cfg_entry_point": vel_flat_env_cfg.TakoFlatEnvCfg,
+        "rsl_rl_cfg_entry_point": vel_agents.rsl_rl_cfg.TakoFlatPPORunnerCfg,
         "skrl_cfg_entry_point": "omni.isaac.contrib_tasks.locomotion.velocity.config.tako.agents:skrl_cfg.yaml",
     },
 )
@@ -80,8 +88,8 @@ gym.register(
     entry_point="omni.isaac.orbit.envs:RLTaskEnv",
     disable_env_checker=True,
     kwargs={
-        "env_cfg_entry_point": flat_env_cfg.TakoFlatEnvCfg_PLAY,
-        "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.TakoFlatPPORunnerCfg,
+        "env_cfg_entry_point": vel_flat_env_cfg.TakoFlatEnvCfg_PLAY,
+        "rsl_rl_cfg_entry_point": vel_agents.rsl_rl_cfg.TakoFlatPPORunnerCfg,
     },
 )
 
@@ -90,8 +98,8 @@ gym.register(
     entry_point="omni.isaac.orbit.envs:RLTaskEnv",
     disable_env_checker=True,
     kwargs={
-        "env_cfg_entry_point": rough_env_cfg.TakoRoughEnvCfg,
-        "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.TakoRoughPPORunnerCfg,
+        "env_cfg_entry_point": vel_rough_env_cfg.TakoRoughEnvCfg,
+        "rsl_rl_cfg_entry_point": vel_agents.rsl_rl_cfg.TakoRoughPPORunnerCfg,
     },
 )
 
@@ -100,8 +108,52 @@ gym.register(
     entry_point="omni.isaac.orbit.envs:RLTaskEnv",
     disable_env_checker=True,
     kwargs={
-        "env_cfg_entry_point": rough_env_cfg.TakoRoughEnvCfg_PLAY,
-        "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.TakoRoughPPORunnerCfg,
+        "env_cfg_entry_point": vel_rough_env_cfg.TakoRoughEnvCfg_PLAY,
+        "rsl_rl_cfg_entry_point": vel_agents.rsl_rl_cfg.TakoRoughPPORunnerCfg,
+    },
+)
+
+##
+# POSITION TASK ENVIRONMENTS
+##
+gym.register(
+    id="Isaac-Contrib-Position-Flat-Tako-v0",
+    entry_point="omni.isaac.orbit.envs:RLTaskEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": pos_flat_env_cfg.TakoFlatEnvCfg,
+        "rsl_rl_cfg_entry_point": pos_agents.rsl_rl_cfg.TakoFlatPPORunnerCfg,
+        "skrl_cfg_entry_point": "omni.isaac.contrib_tasks.locomotion.position.config.tako.agents:skrl_cfg.yaml",
+    },
+)
+
+gym.register(
+    id="Isaac-Contrib-Position-Flat-Tako-Play-v0",
+    entry_point="omni.isaac.orbit.envs:RLTaskEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": pos_flat_env_cfg.TakoFlatEnvCfg_PLAY,
+        "rsl_rl_cfg_entry_point": pos_agents.rsl_rl_cfg.TakoFlatPPORunnerCfg,
+    },
+)
+
+gym.register(
+    id="Isaac-Contrib-Position-Rough-Tako-v0",
+    entry_point="omni.isaac.orbit.envs:RLTaskEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": pos_rough_env_cfg.TakoRoughEnvCfg,
+        "rsl_rl_cfg_entry_point": pos_agents.rsl_rl_cfg.TakoRoughPPORunnerCfg,
+    },
+)
+
+gym.register(
+    id="Isaac-Contrib-Position-Rough-Tako-Play-v0",
+    entry_point="omni.isaac.orbit.envs:RLTaskEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": pos_rough_env_cfg.TakoRoughEnvCfg_PLAY,
+        "rsl_rl_cfg_entry_point": pos_agents.rsl_rl_cfg.TakoRoughPPORunnerCfg,
     },
 )
 
