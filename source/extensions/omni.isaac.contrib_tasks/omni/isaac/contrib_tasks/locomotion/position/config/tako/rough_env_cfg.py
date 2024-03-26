@@ -6,8 +6,8 @@
 from omni.isaac.orbit.utils import configclass
 import math
 
-from .velocity_env_cfg import LocomotionVelocityRoughEnvCfg
-import omni.isaac.orbit_tasks.locomotion.velocity.mdp as mdp
+from omni.isaac.contrib_tasks.locomotion.position.position_env_cfg import LocomotionPositionRoughEnvCfg
+import omni.isaac.contrib_tasks.locomotion.position.mdp as mdp
 ##
 # Pre-defined configs
 ##
@@ -15,12 +15,12 @@ from omni.isaac.contrib_assets.tako import TAKO_CFG  # isort: skip
 
 
 @configclass
-class TakoRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
+class TakoRoughEnvCfg(LocomotionPositionRoughEnvCfg):
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
         # switch robot to Tako
-        self.scene.robot = TAKO_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+        self.scene.robot = TAKO_CFG.replace(prim_path="{ENV_REGEX_NS}/tako")
 
 
 @configclass
