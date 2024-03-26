@@ -167,12 +167,13 @@ class EventCfg:
             "num_buckets": 64,
         },
     )
-
+    '''
     add_base_mass = EventTerm(
         func=mdp.add_body_mass,
         mode="startup",
         params={"asset_cfg": SceneEntityCfg("robot", body_names="body"), "mass_range": (-5.0, 5.0)},
     )
+    '''
 
     # reset
     base_external_force_torque = EventTerm(
@@ -254,6 +255,7 @@ class RewardsCfg:
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=0.0)
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
     dof_power = RewTerm(func=mdp.joint_power_l2, weight=0.0)
+    stumble = RewTerm(func=mdp.stumble, weight=-0.0, params={"factor": 2.0, "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*gecko")})
 
 
 @configclass
