@@ -17,7 +17,7 @@ class TakoRoughPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 24
     max_iterations = 1500
     save_interval = 50
-    experiment_name = "tako_rough"
+    experiment_name = "tako_pos_rough"
     empirical_normalization = False
     policy = RslRlPpoActorCriticCfg(
         init_noise_std=1.0,
@@ -46,7 +46,7 @@ class TakoFlatPPORunnerCfg(TakoRoughPPORunnerCfg):
     def __post_init__(self):
         super().__post_init__()
 
-        self.max_iterations = 300
-        self.experiment_name = "tako_flat"
+        self.max_iterations = 2000
+        self.experiment_name = "tako_pos_flat"
         self.policy.actor_hidden_dims = [128, 128, 128]
         self.policy.critic_hidden_dims = [128, 128, 128]
