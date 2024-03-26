@@ -25,13 +25,13 @@ from omni.isaac.orbit.utils import configclass
 from omni.isaac.orbit.utils.noise import AdditiveUniformNoiseCfg as Unoise
 
 #import omni.isaac.orbit_tasks.locomotion.velocity.mdp as mdp
-import omni.isaac.contrib_tasks.config.tako.mdp as mdp
-import omni.isaac.orbit_tasks.classic.humanoid.mdp as classic_mdp
+import omni.isaac.contrib_tasks.locomotion.position.mdp as mdp
 
 ##
 # Pre-defined configs
 ##
 from omni.isaac.orbit.terrains.config.rough import ROUGH_TERRAINS_CFG  # isort: skip
+from omni.isaac.contrib_assets.tako import TAKO_CFG  # isort: skip
 
 
 ##
@@ -63,17 +63,17 @@ class MySceneCfg(InteractiveSceneCfg):
         debug_vis=False,
     )
     # robots
-    robot: ArticulationCfg = MISSING
+    robot: ArticulationCfg = TAKO_CFG
     # sensors
     height_scanner = RayCasterCfg(
-        prim_path="{ENV_REGEX_NS}/Robot/body",
+        prim_path="{ENV_REGEX_NS}/tako/body",
         offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
         attach_yaw_only=True,
         pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=[1.6, 1.0]),
         debug_vis=False,
         mesh_prim_paths=["/World/ground"],
     )
-    contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*", history_length=3, track_air_time=True)
+    contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/tako/.*", history_length=3, track_air_time=True)
     # lights
     light = AssetBaseCfg(
         prim_path="/World/light",
@@ -100,15 +100,13 @@ class CommandsCfg:
         debug_vis=True,
         simple_heading=True,
         ranges=mdp.UniformPose2dCommandCfg.Ranges(
-            pos_x=(0.5, 3.0), pos_y=(-0., 0.), heading=(-math.pi, math.pi)
+            pos_x=(1.0, 3.0), pos_y=(-0., 0.), heading=(-math.pi, math.pi)
         ),
-
     )
 
 @configclass
 class ActionsCfg:
     """Action specifications for the MDP."""
-
     joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=[".*"], scale=0.5, use_default_offset=True)
 
 
@@ -128,8 +126,8 @@ class ObservationsCfg:
             func=mdp.projected_gravity,
             noise=Unoise(n_min=-0.05, n_max=0.05),
         )
-        target_position = ObsTerm(func=mdp.target_2d_position, params={"command_name": "base_position"})
-        target_heading = ObsTerm(func=mdp.target_heading, params={"command_name": "base_position"})
+        #target_position = ObsTerm(func=mdp.target_2d_position, params={"command_name": "base_position"})
+        #target_heading = ObsTerm(func=mdp.target_heading, params={"command_name": "base_position"})
         joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.01, n_max=0.01))
         joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-1.5, n_max=1.5))
         actions = ObsTerm(func=mdp.last_action)
@@ -168,12 +166,13 @@ class EventCfg:
             "num_buckets": 64,
         },
     )
-
+    '''
     add_base_mass = EventTerm(
         func=mdp.add_body_mass,
         mode="startup",
         params={"asset_cfg": SceneEntityCfg("robot", body_names="body"), "mass_range": (-5.0, 5.0)},
     )
+    '''
 
     # reset
     base_external_force_torque = EventTerm(
@@ -219,6 +218,18 @@ class EventCfg:
         params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)}},
     )
 
+    feet_adhesion = EventTerm(
+        func=mdp.apply_feet_adhesion_force,
+        mode="interval",
+        interval_range_s=(0.005, 0.005),
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names=".*gecko"),
+            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*gecko"),
+            "adhesion_force": 5.0
+        },
+    
+    )
+
 
 @configclass
 class RewardsCfg:
@@ -227,6 +238,7 @@ class RewardsCfg:
     # -- task
     position_tracking = RewTerm(func=mdp.position_tracking_reward, weight=10.0, params={"command_name": "base_position"})
     heading_tracking = RewTerm(func=mdp.heading_tracking_reward, weight=5.0, params={"command_name": "base_position"})
+    move_in_direction = RewTerm(func=mdp.move_in_direction_reward, weight=1.0, params={"command_name": "base_position"})
     # -- penalties
     dof_vel_l2 = RewTerm(func=mdp.joint_vel_l2, weight=-0.001)
     dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-5)
@@ -236,9 +248,8 @@ class RewardsCfg:
     feet_contact_force = RewTerm(   # this is the contact force of the feet with the ground
         func=mdp.feet_contact_force,
         weight=-1.0e-6,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*gecko")},
+        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*gecko"), "threshold": 700.0},
     )
-    move_in_direction = RewTerm(func=mdp.move_in_direction_reward, weight=1.0, params={"command_name": "base_position"})
     undesired_contacts = RewTerm(
         func=mdp.undesired_contacts,
         weight=-1.0,
@@ -262,10 +273,12 @@ class TerminationsCfg:
         func=mdp.illegal_contact,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*body"), "threshold": 1.0},
     )
+    '''
     no_feet_contact = DoneTerm(
         func=mdp.feet_contact_num,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*gecko"]), "threshold": 1},
     )
+    '''
 
 
 
@@ -301,12 +314,20 @@ class LocomotionPositionRoughEnvCfg(RLTaskEnvCfg):
         """Post initialization."""
         # general settings
         self.decimation = 4
-        self.episode_length_s = 20.0
+        self.episode_length_s = 12.0
         # simulation settings
         self.sim.dt = 0.005
-        self.sim.gravity = (0.0, 0.0, -4.9)
+        self.sim.gravity = (0.0, 0.0, -1.0)
         self.sim.disable_contact_processing = True
         self.sim.physics_material = self.scene.terrain.physics_material
+        # Set feet adhesion event
+        self.events.feet_adhesion.adhesion_force = 1500.0
+        # For now, remove randomization events
+        self.events.base_external_force_torque = None
+        self.events.reset_base = None
+        self.events.reset_robot_joints = None
+        self.events.push_robot = None
+        self.events.physics_material = None
         # update sensor update periods
         # we tick all the sensors based on the smallest update period (physics update period)
         if self.scene.height_scanner is not None:
