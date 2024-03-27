@@ -226,7 +226,7 @@ class EventCfg:
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names=".*gecko"),
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*gecko"),
-            "adhesion_force": -0.0
+            "adhesion_force": 0.0
         },
     
     )
@@ -243,11 +243,13 @@ class RewardsCfg:
     # -- penalties
     dof_vel_l2 = RewTerm(func=mdp.joint_vel_l2, weight=-0.001)
     dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-5)
+    dof_vel_limits = RewTerm(func=mdp.joint_vel_limits, weight=-1.0, params={"soft_ratio": 0.95})
+    dof_torque_limits = RewTerm(func=mdp.applied_torque_limits, weight=-0.2)
     body_lin_acc = RewTerm(func=mdp.body_lin_acc_l2, weight=-1.0e-3)
     body_ang_acc = RewTerm(func=mdp.body_ang_acc_l2, weight=-1.0e-3 * 0.02)
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.01)
     feet_contact_force = RewTerm(   # this is the contact force of the feet with the ground
-        func=mdp.feet_contact_force,
+        func=mdp.contact_forces,
         weight=-1.0e-6,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*gecko"), "threshold": 700.0},
     )
@@ -322,6 +324,7 @@ class LocomotionPositionRoughEnvCfg(RLTaskEnvCfg):
         self.sim.disable_contact_processing = True
         self.sim.physics_material = self.scene.terrain.physics_material
         # Set feet adhesion event
+        self.events.feet_adhesion.interval_range_s = (self.sim.dt * self.decimation, self.sim.dt * self.decimation)
         # For now, remove randomization events
         self.events.base_external_force_torque = None
         self.events.reset_base = None
