@@ -31,7 +31,7 @@ def apply_feet_adhesion_force(
     # Compute the number of feet contacts
     net_contact_forces = contact_sensor.data.net_forces_w
     feet_contacts = net_contact_forces[:, sensor_cfg.body_ids, 2] > 1.0
-    contact_indices = feet_contacts.nonzero(as_tuple=False)
+    contact_indices = torch.nonzero(feet_contacts, as_tuple=False)
 
     # create the forces and torques
     size = (len(env_ids), num_bodies, 3)
@@ -41,5 +41,6 @@ def apply_feet_adhesion_force(
         asset.set_external_force_and_torque(forces, torques, env_ids=env_ids, body_ids=asset_cfg.body_ids)
         return
     else:
-        forces[:, contact_indices, 2] = -adhesion_force
+        for env_id, body_id in contact_indices:
+            forces[env_id, body_id, 2] = -adhesion_force
         asset.set_external_force_and_torque(forces, torques, env_ids=env_ids, body_ids=asset_cfg.body_ids)
