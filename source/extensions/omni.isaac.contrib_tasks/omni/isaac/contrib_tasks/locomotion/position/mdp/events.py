@@ -42,6 +42,4 @@ def apply_feet_adhesion_force(
         return
     else:
         forces[:, contact_indices, 2] = -adhesion_force
-        # set the forces and torques into the buffers
-        # note: these are only applied when you call: `asset.write_data_to_sim()`
         asset.set_external_force_and_torque(forces, torques, env_ids=env_ids, body_ids=asset_cfg.body_ids)
