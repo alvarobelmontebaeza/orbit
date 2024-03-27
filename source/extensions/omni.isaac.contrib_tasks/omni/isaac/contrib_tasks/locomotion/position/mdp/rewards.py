@@ -49,7 +49,7 @@ def feet_contact_force(env: RLTaskEnv, threshold: float, sensor_cfg: SceneEntity
     # extract the used quantities (to enable type-hinting)
     contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
     net_contact_forces = contact_sensor.data.net_forces_w
-    penalty = torch.max(torch.norm(net_contact_forces[:, sensor_cfg.body_ids, :], dim=2) - threshold)
+    penalty = torch.sum(torch.max(torch.square(torch.norm(net_contact_forces[:, sensor_cfg.body_ids, :]) - threshold)), dim=1)
     return penalty
 
 
