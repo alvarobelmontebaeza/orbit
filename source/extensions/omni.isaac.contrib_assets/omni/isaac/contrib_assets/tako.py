@@ -57,8 +57,8 @@ TAKO_CFG = ArticulationCfg(
             stiffness=100.0,
             damping=10.0,
         ),
-        "feed": IdealPDActuatorCfg(
-            joint_names_expr=[".*wrist_.*_joint"],
+        "feet": IdealPDActuatorCfg(
+            joint_names_expr=[".*wrist_1_joint", ".*wrist_2_joint", ".*wrist_3_joint"],
             velocity_limit=None,
             effort_limit=50.0,
             stiffness=100.0,
