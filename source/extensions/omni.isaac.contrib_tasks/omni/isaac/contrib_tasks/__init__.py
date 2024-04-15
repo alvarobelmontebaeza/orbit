@@ -58,6 +58,9 @@ from .locomotion.position.config.tako import agents as pos_agents
 from .locomotion.position.config.tako import rough_env_cfg as pos_rough_env_cfg
 from .locomotion.position.config.tako import flat_env_cfg as pos_flat_env_cfg
 
+from .position_control.config.tako import agents as leg_pos_agents
+from .position_control.config.tako import joint_torque_env_cfg as leg_pos_joint_torque_env_cfg
+
 ##
 # Register Gym environments.
 ##
@@ -157,3 +160,16 @@ gym.register(
     },
 )
 
+##
+#   LEG POSITION CONTROL TASK ENVIRONMENTS
+##
+
+gym.register(
+    id="Isaac-Contrib-LegPos-Torque-Tako-v0",
+    entry_point="omni.isaac.orbit.envs:RLTaskEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": leg_pos_joint_torque_env_cfg.TakoLegPositionControlEnvCfg,
+        "rsl_rl_cfg_entry_point": leg_pos_agents.rsl_rl_cfg.TakoPPORunnerCfg,
+    },
+)
