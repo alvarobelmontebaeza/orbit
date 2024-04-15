@@ -14,6 +14,7 @@ from omni.isaac.orbit.envs import RLTaskEnvCfg
 from omni.isaac.orbit.managers import CurriculumTermCfg as CurrTerm
 from omni.isaac.orbit.managers import ObservationGroupCfg as ObsGroup
 from omni.isaac.orbit.managers import ObservationTermCfg as ObsTerm
+from omni.isaac.orbit.managers import ActionTermCfg as ActionTerm
 from omni.isaac.orbit.managers import EventTermCfg as EventTerm
 from omni.isaac.orbit.managers import RewardTermCfg as RewTerm
 from omni.isaac.orbit.managers import SceneEntityCfg
@@ -105,9 +106,7 @@ class CommandsCfg:
 @configclass
 class ActionsCfg:
     """Action specifications for the MDP."""
-    joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=[".*"], scale=0.5, use_default_offset=True)
-    #joint_pos = mdp.RelativeJointPositionActionCfg(asset_name="robot", joint_names=[".*"], scale=0.5)
-
+    leg_action: ActionTerm = MISSING
 
 @configclass
 class ObservationsCfg:
@@ -125,21 +124,10 @@ class ObservationsCfg:
             func=mdp.projected_gravity,
             noise=Unoise(n_min=-0.05, n_max=0.05),
         )
-        #target_position = ObsTerm(func=mdp.target_2d_position, params={"command_name": "base_position"})
-        #target_heading = ObsTerm(func=mdp.target_heading, params={"command_name": "base_position"})
         joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.01, n_max=0.01))
-        joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-1.5, n_max=1.5))
+        joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-0.01, n_max=0.01))
+        pose_command = ObsTerm(func=mdp.generated_commands, params={"command_name": "ee_pose"})
         actions = ObsTerm(func=mdp.last_action)
-        height_scan = ObsTerm(
-            func=mdp.height_scan,
-            params={"sensor_cfg": SceneEntityCfg("height_scanner")},
-            noise=Unoise(n_min=-0.1, n_max=0.1),
-            clip=(-1.0, 1.0),
-        )
-        feet_contact = ObsTerm(
-            func=mdp.feet_contacts,
-            params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*gecko")},
-        )
 
         def __post_init__(self):
             self.enable_corruption = True
@@ -154,17 +142,6 @@ class EventCfg:
     """Configuration for Event."""
 
     # startup
-    physics_material = EventTerm(
-        func=mdp.randomize_rigid_body_material,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
-            "static_friction_range": (0.8, 0.8),
-            "dynamic_friction_range": (0.6, 0.6),
-            "restitution_range": (0.0, 0.0),
-            "num_buckets": 64,
-        },
-    )
     '''
     add_base_mass = EventTerm(
         func=mdp.add_body_mass,
@@ -216,18 +193,7 @@ class EventCfg:
         interval_range_s=(10.0, 15.0),
         params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)}},
     )
-
-    feet_adhesion = EventTerm(
-        func=mdp.apply_feet_adhesion_force,
-        mode="interval",
-        interval_range_s=(0.005, 0.005),
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names=".*gecko"),
-            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*gecko"),
-            "adhesion_force": 0.0
-        },
     
-    )
 
 
 @configclass
@@ -235,30 +201,27 @@ class RewardsCfg:
     """Reward terms for the MDP."""
 
     # -- task
-    position_tracking = RewTerm(func=mdp.position_tracking_reward, weight=10.0, params={"command_name": "base_position"})
-    heading_tracking = RewTerm(func=mdp.heading_tracking_reward, weight=5.0, params={"command_name": "base_position"})
-    move_in_direction = RewTerm(func=mdp.move_in_direction_reward, weight=1.0, params={"command_name": "base_position"})
+    ee_pos_tracking = RewTerm(
+        func=mdp.position_command_error,
+        weight=-0.2,
+        params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose"},
+    )
+    ee_orient_tracking = RewTerm(
+        func=mdp.orientation_command_error,
+        weight=-0.0,
+        params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose"},
+    )
     # -- penalties
     dof_vel_l2 = RewTerm(func=mdp.joint_vel_l2, weight=-0.001)
     dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-5)
-    dof_vel_limits = RewTerm(func=mdp.joint_vel_limits, weight=-1.0, params={"soft_ratio": 0.95})
-    dof_torque_limits = RewTerm(func=mdp.applied_torque_limits, weight=-0.2)
     body_lin_acc = RewTerm(func=mdp.body_lin_acc_l2, weight=-1.0e-3)
     body_ang_acc = RewTerm(func=mdp.body_ang_acc_l2, weight=-1.0e-3 * 0.02)
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.01)
-    feet_contact_force = RewTerm(   # this is the contact force of the feet with the ground
-        func=mdp.contact_forces,
-        weight=-1.0e-6,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*gecko"), "threshold": 700.0},
-    )
     undesired_contacts = RewTerm(
         func=mdp.undesired_contacts,
         weight=-1.0,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*upper_arm_link", ".*forearm_link", ".*wrist.*"]), "threshold": 1.0}, 
     )
-    stumble = RewTerm(func=mdp.stumble, weight=-1.0, params={"factor": 2.0, "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*gecko")})
-    # Termination penalties
-    base_contact = RewTerm(func=mdp.illegal_contact, weight=-200.0, params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*body"), "threshold": 1.0})
     # -- optional penalties
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-5.0)
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
@@ -287,7 +250,9 @@ class TerminationsCfg:
 class CurriculumCfg:
     """Curriculum terms for the MDP."""
 
-    terrain_levels = CurrTerm(func=mdp.terrain_levels_vel)
+    action_rate = CurrTerm(
+        func=mdp.modify_reward_weight, params={"term_name": "action_rate_l2", "weight": -0.005, "num_steps": 4500}
+    )
 
 
 ##
@@ -296,7 +261,7 @@ class CurriculumCfg:
 
 
 @configclass
-class LocomotionPositionRoughEnvCfg(RLTaskEnvCfg):
+class LegPositionControlEnvCfg(RLTaskEnvCfg):
     """Configuration for the locomotion velocity-tracking environment."""
 
     # Scene settings
@@ -318,31 +283,10 @@ class LocomotionPositionRoughEnvCfg(RLTaskEnvCfg):
         self.episode_length_s = 12.0
         # simulation settings
         self.sim.dt = 0.005
-        self.sim.gravity = (0.0, 0.0, -1.0)
+        self.sim.gravity = (0.0, 0.0, 0.0) #remove gravity
         self.sim.disable_contact_processing = True
-        self.sim.physics_material = self.scene.terrain.physics_material
-        # Disable some reward terms
-        self.rewards.feet_contact_force.weight = 0.0
-        # Set feet adhesion event
-        self.events.feet_adhesion.interval_range_s = (self.sim.dt * self.decimation, self.sim.dt * self.decimation)
         # For now, remove randomization events
         self.events.base_external_force_torque = None
         self.events.reset_base = None
         self.events.reset_robot_joints = None
         self.events.push_robot = None
-        self.events.physics_material = None
-        # update sensor update periods
-        # we tick all the sensors based on the smallest update period (physics update period)
-        if self.scene.height_scanner is not None:
-            self.scene.height_scanner.update_period = self.decimation * self.sim.dt
-        if self.scene.contact_forces is not None:
-            self.scene.contact_forces.update_period = self.sim.dt
-
-        # check if terrain levels curriculum is enabled - if so, enable curriculum for terrain generator
-        # this generates terrains with increasing difficulty and is useful for training
-        if getattr(self.curriculum, "terrain_levels", None) is not None:
-            if self.scene.terrain.terrain_generator is not None:
-                self.scene.terrain.terrain_generator.curriculum = True
-        else:
-            if self.scene.terrain.terrain_generator is not None:
-                self.scene.terrain.terrain_generator.curriculum = False
