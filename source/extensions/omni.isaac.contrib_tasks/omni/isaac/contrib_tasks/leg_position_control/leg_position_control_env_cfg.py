@@ -68,6 +68,7 @@ class MySceneCfg(InteractiveSceneCfg):
     # robots
     robot: ArticulationCfg = TAKO_CFG
     # sensors
+    contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/tako/.*", history_length=3, track_air_time=True)
     # lights
     light = AssetBaseCfg(
         prim_path="/World/light",
@@ -165,14 +166,14 @@ class EventCfg:
         func=mdp.reset_root_state_uniform,
         mode="reset",
         params={
-            "pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "yaw": (-3.14, 3.14)},
+            "pose_range": {"x": (-0.0, 0.), "y": (-0., 0.), "yaw": (-0., 0.)},
             "velocity_range": {
-                "x": (-0.5, 0.5),
-                "y": (-0.5, 0.5),
-                "z": (-0.5, 0.5),
-                "roll": (-0.5, 0.5),
-                "pitch": (-0.5, 0.5),
-                "yaw": (-0.5, 0.5),
+                "x": (-0.0, 0.0),
+                "y": (-0.0, 0.0),
+                "z": (-0.0, 0.0),
+                "roll": (-0.0, 0.0),
+                "pitch": (-0.0, 0.0),
+                "yaw": (-0.0, 0.0),
             },
         },
     )
@@ -203,7 +204,7 @@ class RewardsCfg:
     # -- task
     ee_pos_tracking = RewTerm(
         func=mdp.position_command_error,
-        weight=-0.2,
+        weight=-1.0,
         params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose"},
     )
     ee_orient_tracking = RewTerm(
@@ -212,18 +213,24 @@ class RewardsCfg:
         params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose"},
     )
     # -- penalties
-    dof_vel_l2 = RewTerm(func=mdp.joint_vel_l2, weight=-0.001)
+    dof_vel_l2 = RewTerm(func=mdp.joint_vel_l2, weight=-0.01)
     dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-5)
     body_lin_acc = RewTerm(func=mdp.body_lin_acc_l2, weight=-1.0e-3)
     body_ang_acc = RewTerm(func=mdp.body_ang_acc_l2, weight=-1.0e-3 * 0.02)
-    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.01)
+    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.0001)
     undesired_contacts = RewTerm(
         func=mdp.undesired_contacts,
         weight=-1.0,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*upper_arm_link", ".*forearm_link", ".*wrist.*"]), "threshold": 1.0}, 
     )
+    # -- termination penalties
+    illegal_contact = RewTerm(
+        func=mdp.illegal_contact,
+        weight=-10.0,
+        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*body"), "threshold": 1.0},
+    )
     # -- optional penalties
-    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-5.0)
+    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=0.0)
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
     dof_power = RewTerm(func=mdp.joint_power_l2, weight=0.0)
 
@@ -280,7 +287,7 @@ class LegPositionControlEnvCfg(RLTaskEnvCfg):
         """Post initialization."""
         # general settings
         self.decimation = 4
-        self.episode_length_s = 12.0
+        self.episode_length_s = 15.0
         # simulation settings
         self.sim.dt = 0.005
         self.sim.gravity = (0.0, 0.0, 0.0) #remove gravity
