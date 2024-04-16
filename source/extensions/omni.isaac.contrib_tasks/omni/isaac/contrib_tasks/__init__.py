@@ -173,3 +173,13 @@ gym.register(
         "rsl_rl_cfg_entry_point": leg_pos_agents.rsl_rl_cfg.TakoPPORunnerCfg,
     },
 )
+
+gym.register(
+    id="Isaac-Contrib-LegPos-Torque-Tako-Play-v0",
+    entry_point="omni.isaac.orbit.envs:RLTaskEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": leg_pos_joint_torque_env_cfg.TakoLegPositionControlEnvCfg_PLAY,
+        "rsl_rl_cfg_entry_point": leg_pos_agents.rsl_rl_cfg.TakoPPORunnerCfg,
+    },
+)
