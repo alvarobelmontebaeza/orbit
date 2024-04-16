@@ -50,14 +50,14 @@ TAKO_CFG = ArticulationCfg(
         },
     ),
     actuators={
-        "legs": IdealPDActuatorCfg(
+        "legs": ImplicitActuatorCfg(
             joint_names_expr=[".*shoulder_pan_joint", ".*shoulder_lift_joint", ".*elbow_joint"],
             velocity_limit=None,
             effort_limit=150.0,
             stiffness=100.0,
             damping=10.0,
         ),
-        "feet": IdealPDActuatorCfg(
+        "feet": ImplicitActuatorCfg(
             joint_names_expr=[".*wrist_1_joint", ".*wrist_2_joint", ".*wrist_3_joint"],
             velocity_limit=None,
             effort_limit=50.0,
