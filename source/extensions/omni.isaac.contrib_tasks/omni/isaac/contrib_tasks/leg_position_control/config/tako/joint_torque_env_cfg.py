@@ -31,10 +31,14 @@ class TakoLegPositionControlEnvCfg(LegPositionControlEnvCfg):
         leg_prefix = "LF"
         foot_name = leg_prefix + "_gecko"
 
-        # switch robot to ur10
-        self.scene.robot = TAKO_CFG
+        self.scene.robot = TAKO_CFG.replace(prim_path="{ENV_REGEX_NS}/tako")
         # override events
         self.events.reset_robot_joints.params["position_range"] = (0.75, 1.25)
+        # For now, remove randomization events
+        self.events.base_external_force_torque = None
+        self.events.reset_base = None
+        self.events.reset_robot_joints = None
+        self.events.push_robot = None
         # override rewards
         self.rewards.ee_pos_tracking.params["asset_cfg"].body_names = [foot_name]
         self.rewards.ee_orient_tracking.params["asset_cfg"].body_names = [foot_name]
@@ -49,7 +53,7 @@ class TakoLegPositionControlEnvCfg(LegPositionControlEnvCfg):
 
 
 @configclass
-class TakoLegPositionControlEnvCfg_PLAY(LegPositionControlEnvCfg):
+class TakoLegPositionControlEnvCfg_PLAY(TakoLegPositionControlEnvCfg):
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
