@@ -91,7 +91,7 @@ class CommandsCfg:
     ee_pose = mdp.UniformPoseCommandCfg(
         asset_name="robot",
         body_name=MISSING,
-        resampling_time_range=(10.0, 10.0),
+        resampling_time_range=(4.0, 4.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
             pos_x=(0.35, 0.65),
@@ -191,7 +191,7 @@ class EventCfg:
         func=mdp.push_by_setting_velocity,
         mode="interval",
         interval_range_s=(10.0, 15.0),
-        params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)}},
+        params={"velocity_range": {"x": (-0.1, 0.1), "y": (-0.1, 0.1)}},
     )
     
 
@@ -285,8 +285,3 @@ class LegPositionControlEnvCfg(RLTaskEnvCfg):
         self.sim.dt = 0.005
         self.sim.gravity = (0.0, 0.0, 0.0) #remove gravity
         self.sim.disable_contact_processing = True
-        # For now, remove randomization events
-        self.events.base_external_force_torque = None
-        self.events.reset_base = None
-        self.events.reset_robot_joints = None
-        self.events.push_robot = None
