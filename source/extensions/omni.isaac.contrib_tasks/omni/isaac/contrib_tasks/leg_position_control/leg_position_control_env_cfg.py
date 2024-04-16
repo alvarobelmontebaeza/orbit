@@ -26,7 +26,7 @@ from omni.isaac.orbit.utils import configclass
 from omni.isaac.orbit.utils.noise import AdditiveUniformNoiseCfg as Unoise
 
 #import omni.isaac.orbit_tasks.locomotion.velocity.mdp as mdp
-import omni.isaac.contrib_tasks.position_control.mdp as mdp
+import omni.isaac.contrib_tasks.leg_position_control.mdp as mdp
 
 ##
 # Pre-defined configs

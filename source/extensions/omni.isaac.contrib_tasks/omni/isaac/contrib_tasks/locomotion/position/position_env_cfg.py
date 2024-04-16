@@ -323,6 +323,8 @@ class LocomotionPositionRoughEnvCfg(RLTaskEnvCfg):
         self.sim.gravity = (0.0, 0.0, -1.0)
         self.sim.disable_contact_processing = True
         self.sim.physics_material = self.scene.terrain.physics_material
+        # Disable some reward terms
+        self.rewards.feet_contact_force.weight = 0.0
         # Set feet adhesion event
         self.events.feet_adhesion.interval_range_s = (self.sim.dt * self.decimation, self.sim.dt * self.decimation)
         # For now, remove randomization events

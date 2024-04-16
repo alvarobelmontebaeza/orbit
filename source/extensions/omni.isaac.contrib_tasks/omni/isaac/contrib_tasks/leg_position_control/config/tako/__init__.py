@@ -5,7 +5,7 @@
 
 import gymnasium as gym
 
-from . import agents, flat_env_cfg, rough_env_cfg
+from . import joint_torque_env_cfg
 
 ##
 # Register Gym environments.

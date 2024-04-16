@@ -103,7 +103,7 @@ class CommandsCfg:
         heading_control_stiffness=0.5,
         debug_vis=True,
         ranges=mdp.UniformVelocityCommandCfg.Ranges(
-            lin_vel_x=(-0.0, 0.3), lin_vel_y=(-0.0, 0.0), ang_vel_z=(-0.0, 0.0), heading=(-math.pi, math.pi)
+            lin_vel_x=(0.2, 0.3), lin_vel_y=(-0.0, 0.0), ang_vel_z=(-0.0, 0.0), heading=(-math.pi, math.pi)
         ),
     )
 
@@ -232,10 +232,11 @@ class RewardsCfg:
         func=mdp.track_ang_vel_z_exp, weight=5.0, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
     )
     # -- penalties
-    lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0)
+    lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-0.2)
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
     dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-5)
-    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-2.5e-7)
+    dof_velocities_l2 = RewTerm(func=mdp.joint_vel_l2, weight=-0.001)
+    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-0.0)
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.01)
     feet_air_time = RewTerm(
         func=mdp.feet_air_time,
@@ -249,10 +250,11 @@ class RewardsCfg:
     undesired_contacts = RewTerm(
         func=mdp.undesired_contacts,
         weight=-1.0,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*shoulder_link", ".*upper_arm_link", ".*forearm_link", ".*wrist_1_link", ".*wrist_2_link", ".*wrist_3_link"]), "threshold": 1.0}, 
+        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*shoulder_link", ".*upper_arm_link", ".*forearm_link", ".*wrist_1_link", ".*wrist_2_link"]), "threshold": 1.0}, 
     )
     # -- optional penalties
-    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=0.0)
+    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-5.0)
+    feet_flat_orientation_l2 = RewTerm(func=mdp.feet_flat_orientation_l2, weight=-0.0, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*gecko")})
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
     dof_power = RewTerm(func=mdp.joint_power_l2, weight=0.0)
     stumble = RewTerm(func=mdp.stumble, weight=-0.0, params={"factor": 2.0, "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*gecko")})

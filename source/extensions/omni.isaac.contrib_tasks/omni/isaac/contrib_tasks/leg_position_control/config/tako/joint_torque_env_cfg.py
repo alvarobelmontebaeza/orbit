@@ -9,8 +9,8 @@ import math
 
 from omni.isaac.orbit.utils import configclass
 
-import omni.isaac.contrib_tasks.position_control.mdp as mdp
-from omni.isaac.contrib_tasks.position_control.position_control_env_cfg import LegPositionControlEnvCfg
+import omni.isaac.contrib_tasks.leg_position_control.mdp as mdp
+from omni.isaac.contrib_tasks.leg_position_control.leg_position_control_env_cfg import LegPositionControlEnvCfg
 
 ##
 # Pre-defined configs

@@ -58,8 +58,8 @@ from .locomotion.position.config.tako import agents as pos_agents
 from .locomotion.position.config.tako import rough_env_cfg as pos_rough_env_cfg
 from .locomotion.position.config.tako import flat_env_cfg as pos_flat_env_cfg
 
-from .position_control.config.tako import agents as leg_pos_agents
-from .position_control.config.tako import joint_torque_env_cfg as leg_pos_joint_torque_env_cfg
+from .leg_position_control.config.tako import agents as leg_pos_agents
+from .leg_position_control.config.tako import joint_torque_env_cfg as leg_pos_joint_torque_env_cfg
 
 ##
 # Register Gym environments.
