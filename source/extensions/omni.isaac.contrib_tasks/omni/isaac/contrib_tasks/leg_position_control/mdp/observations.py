@@ -31,6 +31,38 @@ Root state.
 Joint state.
 """
 
+def foot_position(env: BaseEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    """
+    Get the 3D positions of the feet.
+
+    Args:
+        env (BaseEnv): The environment object.
+        asset_cfg (SceneEntityCfg, optional): The configuration for the scene entity. Defaults to SceneEntityCfg("robot").
+
+    Returns:
+        torch.Tensor: A tensor containing the 3D positions of the feet.
+    """
+    # extract the used quantities (to enable type-hinting)
+    asset: Articulation = env.scene[asset_cfg.name]
+    # get the 3D positions of the feet
+    return asset.data.body_pos_w[:, asset_cfg.body_ids].view(-1, 3)
+
+def foot_orientation(env: BaseEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    """
+    Get the 3D orientation of the feet.
+
+    Args:
+        env (BaseEnv): The environment object.
+        sensor_cfg (SceneEntityCfg): The configuration for the scene entity.
+
+    Returns:
+        torch.Tensor: A tensor containing the 3D positions of the feet.
+    """
+    # extract the used quantities (to enable type-hinting)
+    asset: Articulation = env.scene[asset_cfg.name]
+    # get the 3D positions of the feet
+    return asset.data.body_quat_w[:, asset_cfg.body_ids, 1:].view(-1, 3)
+
 """
 Sensors.
 """
