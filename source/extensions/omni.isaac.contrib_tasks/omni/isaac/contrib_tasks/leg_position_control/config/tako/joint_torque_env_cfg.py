@@ -52,22 +52,35 @@ class TakoLegPositionControlEnvCfg(LegPositionControlEnvCfg):
         # override actions
         '''
         self.actions.leg_action = mdp.JointEffortActionCfg(
-            asset_name="robot", joint_names=[leg_prefix + ".*"], scale=1.0, 
+            asset_name="robot", joint_names=[leg_prefix + "_shoulder_pan_joint", leg_prefix + "_shoulder_lift_joint", leg_prefix + "_elbow_joint"], scale=150.0, 
+        )
+        self.actions.foot_action = mdp.JointEffortActionCfg(
+            asset_name="robot", joint_names=[leg_prefix + "_wrist_1_joint", leg_prefix + "_wrist_2_joint", leg_prefix + "_wrist_3_joint"], scale=28.0, 
         )
         '''
         self.actions.leg_action = mdp.JointPositionActionCfg(
             asset_name="robot", joint_names=[leg_prefix + ".*"], scale=0.5
         )
+        # Override observations
         
-        # override command generator body
-        # end-effector is along x-direction
+        self.observations.policy.foot_pos.params["asset_cfg"].body_names = [foot_name]
+        self.observations.policy.foot_orient.params["asset_cfg"].body_names = [foot_name]
+        
+        
+        # override command generator
+        # end-effector is along Z-direction
         self.commands.ee_pose.body_name = foot_name
-        self.commands.ee_pose.ranges.pitch = (-math.pi / 4, math.pi / 4)
 
         # Set command generator to sample points around the foot initial position
-        self.commands.ee_pose.ranges.pos_x = (feet_init_pos[leg_prefix][0] - 0.5, feet_init_pos[leg_prefix][0] + 0.5)
-        self.commands.ee_pose.ranges.pos_y = (feet_init_pos[leg_prefix][1] - 0.5, feet_init_pos[leg_prefix][1] + 0.5)
-        self.commands.ee_pose.ranges.pos_z = (feet_init_pos[leg_prefix][2] - 0.5, feet_init_pos[leg_prefix][2] + 0.5)
+        self.commands.ee_pose.ranges.pos_x = (feet_init_pos[leg_prefix][0] - 0.4, feet_init_pos[leg_prefix][0] + 0.4)
+        self.commands.ee_pose.ranges.pos_y = (feet_init_pos[leg_prefix][1] - 0.3, feet_init_pos[leg_prefix][1] + 0.3)
+        self.commands.ee_pose.ranges.pos_z = (feet_init_pos[leg_prefix][2] - 0.4, feet_init_pos[leg_prefix][2] + 0.4)
+
+        # Set commanded orientation to face the ground +- an error
+        self.commands.ee_pose.ranges.roll = (math.pi, math.pi)
+        self.commands.ee_pose.ranges.pitch = (0.0, 0.0)
+        self.commands.ee_pose.ranges.yaw = (0.0, 0.0)
+
 
 
 
