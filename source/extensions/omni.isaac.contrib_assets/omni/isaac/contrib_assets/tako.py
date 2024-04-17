@@ -12,12 +12,14 @@ import omni.isaac.orbit.sim as sim_utils
 from omni.isaac.orbit.actuators import ImplicitActuatorCfg, IdealPDActuatorCfg
 from omni.isaac.orbit.assets.articulation import ArticulationCfg
 
+import math
+
 ##
 # Configuration
 ##
 TAKO_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path="/home/alvaro/Desktop/tako_backup.usd",
+        usd_path="/home/alvaro/Desktop/tako_leg_pos_control.usd",
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
@@ -52,17 +54,17 @@ TAKO_CFG = ArticulationCfg(
     actuators={
         "legs": ImplicitActuatorCfg(
             joint_names_expr=[".*shoulder_pan_joint", ".*shoulder_lift_joint", ".*elbow_joint"],
-            velocity_limit=None,
+            velocity_limit=math.pi * 2.0,
             effort_limit=150.0,
-            stiffness=100.0,
-            damping=10.0,
+            stiffness=80.0,
+            damping=4.0,
         ),
         "feet": ImplicitActuatorCfg(
             joint_names_expr=[".*wrist_1_joint", ".*wrist_2_joint", ".*wrist_3_joint"],
-            velocity_limit=None,
-            effort_limit=50.0,
-            stiffness=100.0,
-            damping=10.0,
+            velocity_limit=math.pi * 2.0,
+            effort_limit=28.0,
+            stiffness=80.0,
+            damping=4.0,
         )
     },
     soft_joint_pos_limit_factor=0.95, # Limit factor for joint position limits
