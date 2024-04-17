@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from omni.isaac.orbit.managers import SceneEntityCfg
 from omni.isaac.orbit.sensors import ContactSensor
 from omni.isaac.orbit.assets import Articulation, RigidObject
-from omni.isaac.orbit.utils.math import combine_frame_transforms
+from omni.isaac.orbit.utils.math import combine_frame_transforms, quat_mul, quat_error_magnitude
 
 if TYPE_CHECKING:
     from omni.isaac.orbit.envs import RLTaskEnv
