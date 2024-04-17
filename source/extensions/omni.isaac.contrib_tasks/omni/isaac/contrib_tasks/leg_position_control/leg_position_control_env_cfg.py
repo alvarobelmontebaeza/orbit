@@ -92,7 +92,7 @@ class CommandsCfg:
     ee_pose = mdp.UniformPoseCommandCfg(
         asset_name="robot",
         body_name=MISSING,
-        resampling_time_range=(4.0, 4.0),
+        resampling_time_range=(6.0, 8.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
             pos_x=(0.35, 0.65),
@@ -118,7 +118,6 @@ class ObservationsCfg:
         """Observations for policy group."""
 
         # observation terms (order preserved)
-        root_pos = ObsTerm(func=mdp.root_pos_w)
         base_lin_vel = ObsTerm(func=mdp.base_lin_vel)
         base_ang_vel = ObsTerm(func=mdp.base_ang_vel)
         projected_gravity = ObsTerm(
@@ -128,6 +127,8 @@ class ObservationsCfg:
         joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.01, n_max=0.01))
         joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-0.01, n_max=0.01))
         pose_command = ObsTerm(func=mdp.generated_commands, params={"command_name": "ee_pose"})
+        foot_pos = ObsTerm(func=mdp.foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*gecko")})
+        foot_orient = ObsTerm(func=mdp.foot_orientation, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*gecko")})
         actions = ObsTerm(func=mdp.last_action)
 
         def __post_init__(self):
@@ -209,19 +210,19 @@ class RewardsCfg:
     )
     ee_orient_tracking = RewTerm(
         func=mdp.orientation_command_error,
-        weight=-0.0,
+        weight=-0.1,
         params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose"},
     )
     # -- penalties
-    dof_vel_l2 = RewTerm(func=mdp.joint_vel_l2, weight=-0.01)
+    dof_vel_l2 = RewTerm(func=mdp.joint_vel_l2, weight=-0.)
     dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-5)
     body_lin_acc = RewTerm(func=mdp.body_lin_acc_l2, weight=-1.0e-3)
     body_ang_acc = RewTerm(func=mdp.body_ang_acc_l2, weight=-1.0e-3 * 0.02)
-    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.0001)
+    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.)
     undesired_contacts = RewTerm(
         func=mdp.undesired_contacts,
         weight=-1.0,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*upper_arm_link", ".*forearm_link", ".*wrist.*"]), "threshold": 1.0}, 
+        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*shoulder_link", ".*upper_arm_link", ".*forearm_link", ".*wrist_1_link", ".*wrist_2_link", ".*wrist_3_link"]), "threshold": 1.0}, 
     )
     # -- termination penalties
     illegal_contact = RewTerm(
@@ -232,7 +233,7 @@ class RewardsCfg:
     # -- optional penalties
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=0.0)
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
-    dof_power = RewTerm(func=mdp.joint_power_l2, weight=0.0)
+    dof_power = RewTerm(func=mdp.joint_power_l2, weight=-0.0005)
 
 
 @configclass
@@ -286,7 +287,7 @@ class LegPositionControlEnvCfg(RLTaskEnvCfg):
     def __post_init__(self):
         """Post initialization."""
         # general settings
-        self.decimation = 4
+        self.decimation = 2
         self.episode_length_s = 15.0
         # simulation settings
         self.sim.dt = 0.005
