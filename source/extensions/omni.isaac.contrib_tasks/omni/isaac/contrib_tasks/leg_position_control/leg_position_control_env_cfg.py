@@ -92,7 +92,7 @@ class CommandsCfg:
     ee_pose = mdp.UniformPoseCommandCfg(
         asset_name="robot",
         body_name=MISSING,
-        resampling_time_range=(6.0, 8.0),
+        resampling_time_range=(6.0, 6.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
             pos_x=(0.35, 0.65),
@@ -203,22 +203,37 @@ class RewardsCfg:
     """Reward terms for the MDP."""
 
     # -- task
+    '''
     ee_pos_tracking = RewTerm(
         func=mdp.position_command_error,
         weight=-1.0,
         params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose"},
     )
+    '''
+    ee_pos_tracking = RewTerm(
+        func=mdp.position_command_error_exp,
+        weight=2.0,
+        params={"sigma": 0.8, "asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose"},
+    )
+    '''
     ee_orient_tracking = RewTerm(
         func=mdp.orientation_command_error,
-        weight=-0.1,
+        weight=-0.5,
         params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose"},
     )
+    '''
+    ee_orient_tracking = RewTerm(
+        func=mdp.orientation_command_error_exp,
+        weight=0.5,
+        params={"sigma": 0.8, "asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose"},
+    )
     # -- penalties
-    dof_vel_l2 = RewTerm(func=mdp.joint_vel_l2, weight=-0.)
-    dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-5)
+    dof_vel_l2 = RewTerm(func=mdp.joint_vel_l2, weight=-0.05)
+    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-5.0e-6)
+    dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-2.5e-5)
     body_lin_acc = RewTerm(func=mdp.body_lin_acc_l2, weight=-1.0e-3)
     body_ang_acc = RewTerm(func=mdp.body_ang_acc_l2, weight=-1.0e-3 * 0.02)
-    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.)
+    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.01)
     undesired_contacts = RewTerm(
         func=mdp.undesired_contacts,
         weight=-1.0,
@@ -233,7 +248,7 @@ class RewardsCfg:
     # -- optional penalties
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=0.0)
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
-    dof_power = RewTerm(func=mdp.joint_power_l2, weight=-0.0005)
+    dof_power = RewTerm(func=mdp.joint_power_l2, weight=-0.0)
 
 
 @configclass
@@ -288,7 +303,7 @@ class LegPositionControlEnvCfg(RLTaskEnvCfg):
         """Post initialization."""
         # general settings
         self.decimation = 2
-        self.episode_length_s = 15.0
+        self.episode_length_s = 12.0
         # simulation settings
         self.sim.dt = 0.005
         self.sim.gravity = (0.0, 0.0, 0.0) #remove gravity
