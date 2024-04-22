@@ -57,10 +57,15 @@ class TakoLegPositionControlEnvCfg(LegPositionControlEnvCfg):
         self.actions.foot_action = mdp.JointEffortActionCfg(
             asset_name="robot", joint_names=[leg_prefix + "_wrist_1_joint", leg_prefix + "_wrist_2_joint", leg_prefix + "_wrist_3_joint"], scale=28.0, 
         )
-        '''
+        
         self.actions.leg_action = mdp.JointPositionActionCfg(
-            asset_name="robot", joint_names=[leg_prefix + ".*"], scale=0.5
+            asset_name="robot", joint_names=[leg_prefix + ".*"], scale=0.5,
         )
+        '''
+        self.actions.leg_action = mdp.RelativeJointPositionActionCfg(
+            asset_name="robot", joint_names=[leg_prefix + ".*"], scale=1.0,
+        )
+        
         # Override observations
         
         self.observations.policy.foot_pos.params["asset_cfg"].body_names = [foot_name]
@@ -72,9 +77,9 @@ class TakoLegPositionControlEnvCfg(LegPositionControlEnvCfg):
         self.commands.ee_pose.body_name = foot_name
 
         # Set command generator to sample points around the foot initial position
-        self.commands.ee_pose.ranges.pos_x = (feet_init_pos[leg_prefix][0] - 0.4, feet_init_pos[leg_prefix][0] + 0.4)
-        self.commands.ee_pose.ranges.pos_y = (feet_init_pos[leg_prefix][1] - 0.3, feet_init_pos[leg_prefix][1] + 0.3)
-        self.commands.ee_pose.ranges.pos_z = (feet_init_pos[leg_prefix][2] - 0.4, feet_init_pos[leg_prefix][2] + 0.4)
+        self.commands.ee_pose.ranges.pos_x = (feet_init_pos[leg_prefix][0] - 0.2, feet_init_pos[leg_prefix][0] + 0.2)
+        self.commands.ee_pose.ranges.pos_y = (feet_init_pos[leg_prefix][1] - 0.2, feet_init_pos[leg_prefix][1] + 0.2)
+        self.commands.ee_pose.ranges.pos_z = (feet_init_pos[leg_prefix][2] - 0.2, feet_init_pos[leg_prefix][2] + 0.2)
 
         # Set commanded orientation to face the ground +- an error
         self.commands.ee_pose.ranges.roll = (math.pi, math.pi)
