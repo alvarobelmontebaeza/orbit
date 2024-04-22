@@ -98,4 +98,6 @@ class TakoLegPositionControlEnvCfg_PLAY(TakoLegPositionControlEnvCfg):
         self.scene.num_envs = 50
         self.scene.env_spacing = 2.5
         # disable randomization for play
+        self.events.reset_robot_joints = None
+        self.events.reset_base = None
         self.observations.policy.enable_corruption = False
