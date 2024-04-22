@@ -212,7 +212,7 @@ class RewardsCfg:
     '''
     ee_pos_tracking = RewTerm(
         func=mdp.position_command_error_exp,
-        weight=2.0,
+        weight=2.5,
         params={"sigma": 0.8, "asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose"},
     )
     '''
@@ -224,12 +224,12 @@ class RewardsCfg:
     '''
     ee_orient_tracking = RewTerm(
         func=mdp.orientation_command_error_exp,
-        weight=0.5,
+        weight=1.0,
         params={"sigma": 0.8, "asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose"},
     )
     # -- penalties
-    dof_vel_l2 = RewTerm(func=mdp.joint_vel_l2, weight=-0.05)
-    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-5.0e-6)
+    dof_vel_l2 = RewTerm(func=mdp.joint_vel_l2, weight=-0.1)
+    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-5.0e-5)
     dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-2.5e-5)
     body_lin_acc = RewTerm(func=mdp.body_lin_acc_l2, weight=-1.0e-3)
     body_ang_acc = RewTerm(func=mdp.body_ang_acc_l2, weight=-1.0e-3 * 0.02)
