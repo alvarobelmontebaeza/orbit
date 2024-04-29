@@ -95,7 +95,7 @@ class CommandsCfg:
         resampling_time_range=(3.0, 6.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.0, 0.0),
+            pos_x=(math.pi, math.pi),
             pos_y=(0.0, 0.0),
             pos_z=(0.0, 0.0),
             roll=(0.0, 0.0),
@@ -109,7 +109,7 @@ class CommandsCfg:
         resampling_time_range=(3.0, 6.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.0, 0.0),
+            pos_x=(math.pi, math.pi),
             pos_y=(0.0, 0.0),
             pos_z=(0.0, 0.0),
             roll=(0.0, 0.0),
@@ -123,7 +123,7 @@ class CommandsCfg:
         resampling_time_range=(3.0, 6.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.0, 0.0),
+            pos_x=(math.pi, math.pi),
             pos_y=(0.0, 0.0),
             pos_z=(0.0, 0.0),
             roll=(0.0, 0.0),
@@ -137,7 +137,7 @@ class CommandsCfg:
         resampling_time_range=(3.0, 6.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.0, 0.0),
+            pos_x=(math.pi, math.pi),
             pos_y=(0.0, 0.0),
             pos_z=(0.0, 0.0),
             roll=(0.0, 0.0),
@@ -170,8 +170,10 @@ class ObservationsCfg:
         LH_foot_pos_des = ObsTerm(func=mdp.generated_commands, params={"command_name": "LH_pose"}) # 7
         RF_foot_pos_des = ObsTerm(func=mdp.generated_commands, params={"command_name": "RF_pose"}) # 7
         RH_foot_pos_des = ObsTerm(func=mdp.generated_commands, params={"command_name": "RH_pose"}) # 7
-        foot_pos = ObsTerm(func=mdp.foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*gecko")}) # 12
-        foot_orient = ObsTerm(func=mdp.foot_orientation, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*gecko")}) # 12
+        LF_foot_pos = ObsTerm(func=mdp.foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*LF_gecko")}) # 12
+        LH_foot_pos = ObsTerm(func=mdp.foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*LH_gecko")}) # 12
+        RF_foot_pos = ObsTerm(func=mdp.foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*RF_gecko")}) # 12
+        RH_foot_pos = ObsTerm(func=mdp.foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*RH_gecko")}) # 12
         actions = ObsTerm(func=mdp.last_action) # 24
 
         def __post_init__(self):
