@@ -95,10 +95,10 @@ class CommandsCfg:
         resampling_time_range=(3.0, 6.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(math.pi, math.pi),
+            pos_x=(0.0, 0.0),
             pos_y=(0.0, 0.0),
             pos_z=(0.0, 0.0),
-            roll=(0.0, 0.0),
+            roll=(math.pi, math.pi),
             pitch=(0.0, 0.0),  # depends on end-effector axis
             yaw=(0.0, 0.0),
         ),
@@ -109,10 +109,10 @@ class CommandsCfg:
         resampling_time_range=(3.0, 6.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(math.pi, math.pi),
+            pos_x=(0.0, 0.0),
             pos_y=(0.0, 0.0),
             pos_z=(0.0, 0.0),
-            roll=(0.0, 0.0),
+            roll=(math.pi, math.pi),
             pitch=(0.0, 0.0),  # depends on end-effector axis
             yaw=(0.0, 0.0),
         ),
@@ -123,10 +123,10 @@ class CommandsCfg:
         resampling_time_range=(3.0, 6.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(math.pi, math.pi),
+            pos_x=(0.0, 0.0),
             pos_y=(0.0, 0.0),
             pos_z=(0.0, 0.0),
-            roll=(0.0, 0.0),
+            roll=(math.pi, math.pi),
             pitch=(0.0, 0.0),  # depends on end-effector axis
             yaw=(0.0, 0.0),
         ),
@@ -137,10 +137,10 @@ class CommandsCfg:
         resampling_time_range=(3.0, 6.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(math.pi, math.pi),
+            pos_x=(0.0, 0.0),
             pos_y=(0.0, 0.0),
             pos_z=(0.0, 0.0),
-            roll=(0.0, 0.0),
+            roll=(math.pi, math.pi),
             pitch=(0.0, 0.0),  # depends on end-effector axis
             yaw=(0.0, 0.0),
         ),
