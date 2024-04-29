@@ -59,7 +59,7 @@ from .locomotion.position.config.tako import rough_env_cfg as pos_rough_env_cfg
 from .locomotion.position.config.tako import flat_env_cfg as pos_flat_env_cfg
 
 from .leg_position_control.config.tako import agents as leg_pos_agents
-from .leg_position_control.config.tako import joint_torque_env_cfg as leg_pos_joint_torque_env_cfg
+from .leg_position_control.config.tako import tako_leg_position_control as tako_leg_position_control_cfg
 
 ##
 # Register Gym environments.
@@ -165,21 +165,41 @@ gym.register(
 ##
 
 gym.register(
-    id="Isaac-Contrib-LegPos-Torque-Tako-v0",
+    id="Isaac-Contrib-LegPos-Tako-v0",
     entry_point="omni.isaac.orbit.envs:RLTaskEnv",
     disable_env_checker=True,
     kwargs={
-        "env_cfg_entry_point": leg_pos_joint_torque_env_cfg.TakoLegPositionControlEnvCfg,
+        "env_cfg_entry_point": tako_leg_position_control_cfg.TakoLegPositionControlEnvCfg,
         "rsl_rl_cfg_entry_point": leg_pos_agents.rsl_rl_cfg.TakoPPORunnerCfg,
     },
 )
 
 gym.register(
-    id="Isaac-Contrib-LegPos-Torque-Tako-Play-v0",
+    id="Isaac-Contrib-LegPos-Tako-Play-v0",
     entry_point="omni.isaac.orbit.envs:RLTaskEnv",
     disable_env_checker=True,
     kwargs={
-        "env_cfg_entry_point": leg_pos_joint_torque_env_cfg.TakoLegPositionControlEnvCfg_PLAY,
+        "env_cfg_entry_point": tako_leg_position_control_cfg.TakoLegPositionControlEnvCfg_PLAY,
         "rsl_rl_cfg_entry_point": leg_pos_agents.rsl_rl_cfg.TakoPPORunnerCfg,
+    },
+)
+
+gym.register(
+    id="Isaac-Contrib-LegPos-OneLeg-Tako-v0",
+    entry_point="omni.isaac.orbit.envs:RLTaskEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": tako_leg_position_control_cfg.TakoOneLegPositionControlEnvCfg,
+        "rsl_rl_cfg_entry_point": leg_pos_agents.rsl_rl_cfg.TakoSimplePPORunnerCfg,
+    },
+)
+
+gym.register(
+    id="Isaac-Contrib-LegPos-OneLeg-Tako-Play-v0",
+    entry_point="omni.isaac.orbit.envs:RLTaskEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": tako_leg_position_control_cfg.TakoOneLegPositionControlEnvCfg_PLAY,
+        "rsl_rl_cfg_entry_point": leg_pos_agents.rsl_rl_cfg.TakoSimplePPORunnerCfg,
     },
 )

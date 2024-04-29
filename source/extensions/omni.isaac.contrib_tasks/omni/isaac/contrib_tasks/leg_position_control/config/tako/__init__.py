@@ -5,7 +5,7 @@
 
 import gymnasium as gym
 
-from . import joint_torque_env_cfg
+from . import tako_leg_position_control
 
 ##
 # Register Gym environments.
