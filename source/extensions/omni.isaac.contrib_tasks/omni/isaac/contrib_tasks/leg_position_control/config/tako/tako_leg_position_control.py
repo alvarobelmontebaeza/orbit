@@ -88,32 +88,39 @@ class TakoOneLegPositionControlEnvCfg(LegPositionControlEnvCfg):
         self.events.push_robot = None
 
         # Remove parts of the MDP specific for the other legs
-        for leg in feet_init_pos.keys():
-            if leg_prefix == leg:
-                continue
-            else:
-                # Remove rewards
-                pos_reward = getattr(self.rewards, leg + "_pos_tracking")
-                orient_reward = getattr(self.rewards, leg + "_orient_tracking")
-                pos_reward = None
-                orient_reward = None
+        # Remove rewards for non-used legs
+        self.rewards.LH_pos_tracking = None
+        self.rewards.LH_orient_tracking = None
+        self.rewards.RF_pos_tracking = None
+        self.rewards.RF_orient_tracking = None
+        self.rewards.RH_pos_tracking = None
+        self.rewards.RH_orient_tracking = None
 
-                # Remove observations
-                foot_pos_des_obs = getattr(self.observations.policy, leg + "_foot_pos_des")
+        # Remove observations for non-used legs
+        self.observations.policy.LH_foot_pos_des = None
+        self.observations.policy.RF_foot_pos_des = None
+        self.observations.policy.RH_foot_pos_des = None
 
-                # Remove commands
-                leg_command = getattr(self.commands, leg + "_pose")
-                leg_command = None                
+        self.observations.policy.LH_foot_pos = None
+        self.observations.policy.RF_foot_pos = None
+        self.observations.policy.RH_foot_pos = None
+
+        # Remove commands for non-used legs
+        self.commands.LH_pose = None
+        self.commands.RF_pose = None
+        self.commands.RH_pose = None
+
+        # override command generator
+        # Set command generator to sample points around the foot initial position
+        self.commands.LF_pose.ranges.pos_x = (feet_init_pos[leg_prefix][0] - 0.2, feet_init_pos[leg_prefix][0] + 0.2)
+        self.commands.LF_pose.ranges.pos_y = (feet_init_pos[leg_prefix][1] - 0.2, feet_init_pos[leg_prefix][1] + 0.2)
+        self.commands.LF_pose.ranges.pos_z = (feet_init_pos[leg_prefix][2] - 0.2, feet_init_pos[leg_prefix][2] + 0.2)
 
         # override actions
         self.actions.legs_joint_position = mdp.RelativeJointPositionActionCfg(
             asset_name="robot", joint_names=[leg_prefix + ".*"], scale=1.0,
         )
         
-        # Override observations        
-        self.observations.policy.foot_pos.params["asset_cfg"].body_names = [foot_name]
-        self.observations.policy.foot_orient.params["asset_cfg"].body_names = [foot_name]
-
 @configclass
 class TakoLegPositionControlEnvCfg_PLAY(TakoLegPositionControlEnvCfg):
     def __post_init__(self):
