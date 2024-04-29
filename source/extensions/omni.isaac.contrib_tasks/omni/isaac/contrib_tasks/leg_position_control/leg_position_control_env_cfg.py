@@ -89,21 +89,62 @@ class MySceneCfg(InteractiveSceneCfg):
 class CommandsCfg:
     """Command specifications for the MDP."""
 
-    ee_pose = mdp.UniformPoseCommandCfg(
+    LF_pose = mdp.UniformPoseCommandCfg(
         asset_name="robot",
-        body_name=MISSING,
+        body_name=".*LF_gecko",
         resampling_time_range=(3.0, 6.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.35, 0.65),
-            pos_y=(-0.2, 0.2),
-            pos_z=(0.15, 0.5),
+            pos_x=(0.0, 0.0),
+            pos_y=(0.0, 0.0),
+            pos_z=(0.0, 0.0),
             roll=(0.0, 0.0),
             pitch=(0.0, 0.0),  # depends on end-effector axis
-            yaw=(-3.14, 3.14),
+            yaw=(0.0, 0.0),
         ),
     )
-
+    LH_pose = mdp.UniformPoseCommandCfg(
+        asset_name="robot",
+        body_name=".*LH_gecko",
+        resampling_time_range=(3.0, 6.0),
+        debug_vis=True,
+        ranges=mdp.UniformPoseCommandCfg.Ranges(
+            pos_x=(0.0, 0.0),
+            pos_y=(0.0, 0.0),
+            pos_z=(0.0, 0.0),
+            roll=(0.0, 0.0),
+            pitch=(0.0, 0.0),  # depends on end-effector axis
+            yaw=(0.0, 0.0),
+        ),
+    )
+    RF_pose = mdp.UniformPoseCommandCfg(
+        asset_name="robot",
+        body_name=".*RF_gecko",
+        resampling_time_range=(3.0, 6.0),
+        debug_vis=True,
+        ranges=mdp.UniformPoseCommandCfg.Ranges(
+            pos_x=(0.0, 0.0),
+            pos_y=(0.0, 0.0),
+            pos_z=(0.0, 0.0),
+            roll=(0.0, 0.0),
+            pitch=(0.0, 0.0),  # depends on end-effector axis
+            yaw=(0.0, 0.0),
+        ),
+    )    
+    RH_pose = mdp.UniformPoseCommandCfg(
+        asset_name="robot",
+        body_name=".*RH_gecko",
+        resampling_time_range=(3.0, 6.0),
+        debug_vis=True,
+        ranges=mdp.UniformPoseCommandCfg.Ranges(
+            pos_x=(0.0, 0.0),
+            pos_y=(0.0, 0.0),
+            pos_z=(0.0, 0.0),
+            roll=(0.0, 0.0),
+            pitch=(0.0, 0.0),  # depends on end-effector axis
+            yaw=(0.0, 0.0),
+        ),
+    )
 @configclass
 class ActionsCfg:
     """Action specifications for the MDP."""
