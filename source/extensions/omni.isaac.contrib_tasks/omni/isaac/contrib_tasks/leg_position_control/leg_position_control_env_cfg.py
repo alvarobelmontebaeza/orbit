@@ -92,7 +92,7 @@ class CommandsCfg:
     LF_pose = mdp.UniformPoseCommandCfg(
         asset_name="robot",
         body_name=".*LF_gecko",
-        resampling_time_range=(3.0, 6.0),
+        resampling_time_range=(6.0, 6.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
             pos_x=(0.0, 0.0),
@@ -106,7 +106,7 @@ class CommandsCfg:
     LH_pose = mdp.UniformPoseCommandCfg(
         asset_name="robot",
         body_name=".*LH_gecko",
-        resampling_time_range=(3.0, 6.0),
+        resampling_time_range=(6.0, 6.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
             pos_x=(0.0, 0.0),
@@ -120,7 +120,7 @@ class CommandsCfg:
     RF_pose = mdp.UniformPoseCommandCfg(
         asset_name="robot",
         body_name=".*RF_gecko",
-        resampling_time_range=(3.0, 6.0),
+        resampling_time_range=(6.0, 6.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
             pos_x=(0.0, 0.0),
@@ -134,7 +134,7 @@ class CommandsCfg:
     RH_pose = mdp.UniformPoseCommandCfg(
         asset_name="robot",
         body_name=".*RH_gecko",
-        resampling_time_range=(3.0, 6.0),
+        resampling_time_range=(6.0, 6.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
             pos_x=(0.0, 0.0),
@@ -159,22 +159,22 @@ class ObservationsCfg:
         """Observations for policy group."""
 
         # observation terms (order preserved)
-        base_lin_vel = ObsTerm(func=mdp.base_lin_vel) # 3
-        base_ang_vel = ObsTerm(func=mdp.base_ang_vel) # 3
+        base_lin_vel = ObsTerm(func=mdp.base_lin_vel) # 0-2
+        base_ang_vel = ObsTerm(func=mdp.base_ang_vel) # 3-5
         projected_gravity = ObsTerm(
             func=mdp.projected_gravity,
-        ) # 3
-        joint_pos = ObsTerm(func=mdp.joint_pos_rel) # 24
-        joint_vel = ObsTerm(func=mdp.joint_vel_rel) # 24
-        LF_foot_pos_des = ObsTerm(func=mdp.generated_commands, params={"command_name": "LF_pose"}) # 7
-        LH_foot_pos_des = ObsTerm(func=mdp.generated_commands, params={"command_name": "LH_pose"}) # 7
-        RF_foot_pos_des = ObsTerm(func=mdp.generated_commands, params={"command_name": "RF_pose"}) # 7
-        RH_foot_pos_des = ObsTerm(func=mdp.generated_commands, params={"command_name": "RH_pose"}) # 7
-        LF_foot_pos = ObsTerm(func=mdp.foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*LF_gecko")}) # 12
-        LH_foot_pos = ObsTerm(func=mdp.foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*LH_gecko")}) # 12
-        RF_foot_pos = ObsTerm(func=mdp.foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*RF_gecko")}) # 12
-        RH_foot_pos = ObsTerm(func=mdp.foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*RH_gecko")}) # 12
-        actions = ObsTerm(func=mdp.last_action) # 24
+        ) # 6-8
+        joint_pos = ObsTerm(func=mdp.joint_pos_rel) # 9 - 32
+        joint_vel = ObsTerm(func=mdp.joint_vel_rel) # 32 - 55
+        LF_foot_pos_des = ObsTerm(func=mdp.generated_commands, params={"command_name": "LF_pose"}) # 56 - 62
+        LH_foot_pos_des = ObsTerm(func=mdp.generated_commands, params={"command_name": "LH_pose"}) # 63 - 69
+        RF_foot_pos_des = ObsTerm(func=mdp.generated_commands, params={"command_name": "RF_pose"}) # 70 - 76
+        RH_foot_pos_des = ObsTerm(func=mdp.generated_commands, params={"command_name": "RH_pose"}) # 77 - 83
+        LF_foot_pos = ObsTerm(func=mdp.foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*LF_gecko")}) # 84 - 86
+        LH_foot_pos = ObsTerm(func=mdp.foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*LH_gecko")}) # 87 - 89
+        RF_foot_pos = ObsTerm(func=mdp.foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*RF_gecko")}) # 90 - 92
+        RH_foot_pos = ObsTerm(func=mdp.foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*RH_gecko")}) # 93 - 95
+        actions = ObsTerm(func=mdp.last_action) # 96 - 120
 
         def __post_init__(self):
             self.enable_corruption = True
@@ -240,7 +240,26 @@ class EventCfg:
         interval_range_s=(10.0, 15.0),
         params={"velocity_range": {"x": (-0.1, 0.1), "y": (-0.1, 0.1)}},
     )
-    
+
+'''
+# EXPONENTIAL REWARD    
+# POSITION TRACKING
+weight_pos_track = 15.0
+sigma_pos_track = 0.1
+# ORIENTATION TRACKING
+weight_orient_track = 2.5
+sigma_orient_track = 0.5
+
+'''
+# LOGARITHMIC REWARD
+# POSITION TRACKING
+weight_pos_track = 2.5
+epsilon_pos_track = 1e-5
+# ORIENTATION TRACKING
+weight_orient_track = 1.0
+epsilon_orient_track = 1e-5
+
+
 
 
 @configclass
@@ -248,67 +267,104 @@ class RewardsCfg:
     """Reward terms for the MDP."""
 
     # -- task rewards
-    '''   
-    ee_pos_tracking = RewTerm(
+    '''
+    ############# EXPONENTIAL REWARD #############
+    LF_pos_tracking = RewTerm(
         func=mdp.position_command_error_exp,
-        weight=15.0,
-        params={"sigma": 0.1, "asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose"},
+        weight=weight_pos_track,
+        params={"sigma": sigma_pos_track, "asset_cfg": SceneEntityCfg("robot", body_names=".*LF_gecko"), "command_name": "LF_pose"},
     )
-    ee_orient_tracking = RewTerm(
+    LH_pos_tracking = RewTerm(
+        func=mdp.position_command_error_exp,
+        weight=weight_pos_track,
+        params={"sigma": sigma_pos_track, "asset_cfg": SceneEntityCfg("robot", body_names=".*LH_gecko"), "command_name": "LH_pose"},
+    ) 
+    RF_pos_tracking = RewTerm(
+        func=mdp.position_command_error_exp,
+        weight=weight_pos_track,
+        params={"sigma": sigma_pos_track, "asset_cfg": SceneEntityCfg("robot", body_names=".*RF_gecko"), "command_name": "RF_pose"},
+    ) 
+    RH_pos_tracking = RewTerm(
+        func=mdp.position_command_error_exp,
+        weight=weight_pos_track,
+        params={"sigma": sigma_pos_track, "asset_cfg": SceneEntityCfg("robot", body_names=".*RH_gecko"), "command_name": "RH_pose"},
+    )  
+
+    LF_orient_tracking = RewTerm(
         func=mdp.orientation_command_error_exp,
-        weight=2.5,
-        params={"sigma": 0.8, "asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose"},
+        weight=weight_orient_track,
+        params={"sigma": sigma_orient_track, "asset_cfg": SceneEntityCfg("robot", body_names=".*LF_gecko"), "command_name": "LF_pose"},
+    )
+    LH_orient_tracking = RewTerm(
+        func=mdp.orientation_command_error_exp,
+        weight=weight_orient_track,
+        params={"sigma": sigma_orient_track,"asset_cfg": SceneEntityCfg("robot", body_names=".*LH_gecko"), "command_name": "LH_pose"},
+    )
+    RF_orient_tracking = RewTerm(
+        func=mdp.orientation_command_error_exp,
+        weight=weight_orient_track,
+        params={"sigma": sigma_orient_track,"asset_cfg": SceneEntityCfg("robot", body_names=".*RF_gecko"), "command_name": "RF_pose"},
+    )
+    RH_orient_tracking = RewTerm(
+        func=mdp.orientation_command_error_exp,
+        weight=weight_orient_track,
+        params={"sigma": sigma_orient_track, "asset_cfg": SceneEntityCfg("robot", body_names=".*RH_gecko"), "command_name": "RH_pose"},
     )
     '''
+    ############# LOGARITHMIC REWARD #############
     # POSITION TRACKING
+
     LF_pos_tracking = RewTerm(
         func=mdp.position_command_error_ln,
-        weight=2.5,
-        params={"epsilon": 1e-5, "asset_cfg": SceneEntityCfg("robot", body_names=".*LF_gecko"), "command_name": "LF_pose"},
+        weight=weight_pos_track,
+        params={"epsilon": epsilon_pos_track, "asset_cfg": SceneEntityCfg("robot", body_names=".*LF_gecko"), "command_name": "LF_pose"},
     )
     LH_pos_tracking = RewTerm(
         func=mdp.position_command_error_ln,
-        weight=2.5,
-        params={"epsilon": 1e-5, "asset_cfg": SceneEntityCfg("robot", body_names=".*LH_gecko"), "command_name": "LH_pose"},
+        weight=weight_pos_track,
+        params={"epsilon": epsilon_pos_track, "asset_cfg": SceneEntityCfg("robot", body_names=".*LH_gecko"), "command_name": "LH_pose"},
     ) 
     RF_pos_tracking = RewTerm(
         func=mdp.position_command_error_ln,
-        weight=2.5,
-        params={"epsilon": 1e-5, "asset_cfg": SceneEntityCfg("robot", body_names=".*RF_gecko"), "command_name": "RF_pose"},
+        weight=weight_pos_track,
+        params={"epsilon": epsilon_pos_track, "asset_cfg": SceneEntityCfg("robot", body_names=".*RF_gecko"), "command_name": "RF_pose"},
     ) 
     RH_pos_tracking = RewTerm(
         func=mdp.position_command_error_ln,
-        weight=2.5,
-        params={"epsilon": 1e-5, "asset_cfg": SceneEntityCfg("robot", body_names=".*RH_gecko"), "command_name": "RH_pose"},
+        weight=weight_pos_track,
+        params={"epsilon": epsilon_pos_track, "asset_cfg": SceneEntityCfg("robot", body_names=".*RH_gecko"), "command_name": "RH_pose"},
     )  
 
     # ORIENTATION TRACKING
+
     LF_orient_tracking = RewTerm(
         func=mdp.orientation_command_error_ln,
-        weight=1.0,
-        params={"asset_cfg": SceneEntityCfg("robot", body_names=".*LF_gecko"), "command_name": "LF_pose"},
+        weight=weight_orient_track,
+        params={"epsilon": epsilon_orient_track, "asset_cfg": SceneEntityCfg("robot", body_names=".*LF_gecko"), "command_name": "LF_pose"},
     )
     LH_orient_tracking = RewTerm(
         func=mdp.orientation_command_error_ln,
-        weight=1.0,
-        params={"asset_cfg": SceneEntityCfg("robot", body_names=".*LH_gecko"), "command_name": "LH_pose"},
+        weight=weight_orient_track,
+        params={"epsilon": epsilon_orient_track,"asset_cfg": SceneEntityCfg("robot", body_names=".*LH_gecko"), "command_name": "LH_pose"},
     )
     RF_orient_tracking = RewTerm(
         func=mdp.orientation_command_error_ln,
-        weight=1.0,
-        params={"asset_cfg": SceneEntityCfg("robot", body_names=".*RF_gecko"), "command_name": "RF_pose"},
+        weight=weight_orient_track,
+        params={"epsilon": epsilon_orient_track,"asset_cfg": SceneEntityCfg("robot", body_names=".*RF_gecko"), "command_name": "RF_pose"},
     )
     RH_orient_tracking = RewTerm(
         func=mdp.orientation_command_error_ln,
-        weight=1.0,
-        params={"asset_cfg": SceneEntityCfg("robot", body_names=".*RH_gecko"), "command_name": "RH_pose"},
+        weight=weight_orient_track,
+        params={"epsilon": epsilon_orient_track, "asset_cfg": SceneEntityCfg("robot", body_names=".*RH_gecko"), "command_name": "RH_pose"},
     )
     
     
+    
     # -- penalties
-    dof_vel_l2 = RewTerm(func=mdp.joint_vel_l2, weight=-0.05)
+    dof_vel_l2 = RewTerm(func=mdp.joint_vel_l2, weight=-0.0)
     dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-5.0e-6)
-    dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-2.0e-5)
+    dof_power_l2 = RewTerm(func=mdp.joint_power_l2, weight=-0.025)
+    dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-0.0)
     body_lin_acc = RewTerm(func=mdp.body_lin_acc_l2, weight=-1.0e-3)
     body_ang_acc = RewTerm(func=mdp.body_ang_acc_l2, weight=-1.0e-3)
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.01)
@@ -326,7 +382,6 @@ class RewardsCfg:
     # -- optional penalties
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=0.0)
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
-    dof_power = RewTerm(func=mdp.joint_power_l2, weight=-0.0)
 
 
 @configclass
