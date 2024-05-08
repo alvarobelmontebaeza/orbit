@@ -72,10 +72,10 @@ class TakoOneLegPositionControlEnvCfg(LegPositionControlEnvCfg):
         foot_name = leg_prefix + "_gecko"
         # Feet init pos
         feet_init_pos = {
-            "LF": [0.55, 0.9, -0.5],
-            "LH": [-0.3, 0.9, -0.5],
-            "RF": [0.55, -0.73, -0.5],
-            "RH": [-0.3, -0.73, -0.5],
+            "LF": [0.553, 0.924, -0.496],
+            "LH": [-0.297, 0.929, -0.483],
+            "RF": [0.547, -0.731, -0.495],
+            "RH": [-0.295, -0.718, -0.486],
         }
 
         self.scene.robot = TAKO_CFG.replace(prim_path="{ENV_REGEX_NS}/tako")
@@ -95,6 +95,10 @@ class TakoOneLegPositionControlEnvCfg(LegPositionControlEnvCfg):
         self.rewards.RF_orient_tracking = None
         self.rewards.RH_pos_tracking = None
         self.rewards.RH_orient_tracking = None
+
+        # Adjust reward weights
+        self.rewards.dof_power_l2.weight = -0.05
+        self.rewards.action_rate_l2.weight = -0.01
 
         # Remove observations for non-used legs
         self.observations.policy.LH_foot_pos_des = None
