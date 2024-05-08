@@ -44,7 +44,7 @@ class TakoPPORunnerCfg(RslRlOnPolicyRunnerCfg):
 @configclass
 class TakoSimplePPORunnerCfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 24
-    max_iterations = 5000 #1500
+    max_iterations = 2000
     save_interval = 50
     experiment_name = "tako_one_leg_pos"
     resume = False
