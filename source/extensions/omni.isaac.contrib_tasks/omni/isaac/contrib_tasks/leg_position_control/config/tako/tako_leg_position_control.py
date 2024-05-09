@@ -45,14 +45,15 @@ class TakoLegPositionControlEnvCfg(LegPositionControlEnvCfg):
         self.events.base_external_force_torque = None
         self.events.push_robot = None
         # override actions
-        '''        
+                
         self.actions.legs_joint_position = mdp.JointPositionActionCfg(
             asset_name="robot", joint_names=[".*"], scale=0.5,
         )
         '''
         self.actions.legs_joint_position = mdp.RelativeJointPositionActionCfg(
             asset_name="robot", joint_names=[".*"], scale=1.0,
-        )        
+        )
+        '''        
         
         # override command generator
         # Set command generator to sample points around the foot initial position
@@ -121,7 +122,7 @@ class TakoOneLegPositionControlEnvCfg(LegPositionControlEnvCfg):
         self.commands.LF_pose.ranges.pos_z = (feet_init_pos[leg_prefix][2] - 0.2, feet_init_pos[leg_prefix][2] + 0.2)
 
         # override actions
-        self.actions.legs_joint_position = mdp.RelativeJointPositionActionCfg(
+        self.actions.legs_joint_position = mdp.JointPositionActionCfg(
             asset_name="robot", joint_names=[leg_prefix + ".*"], scale=1.0,
         )
         
