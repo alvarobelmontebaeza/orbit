@@ -25,6 +25,7 @@ parser.add_argument(
 )
 parser.add_argument("--task", type=str, default=None, help="Name of the task.")
 parser.add_argument("--seed", type=int, default=None, help="Seed used for the environment")
+parser.add_argument("--traj", type=str, default="circular", help="Type of trajectory to follow")
 # append RSL-RL cli arguments
 cli_args.add_rsl_rl_args(parser)
 # append AppLauncher cli args
@@ -96,7 +97,8 @@ def main():
 
     # Get trajectory
     # Configuration
-    traj_time = 15.0 #s
+    traj_type = args_cli.traj
+    traj_time = 10.0 #s
     dt = env.unwrapped.step_dt
     tracking_point_update_rate = 10 #steps per update
     num_points = int((traj_time / dt)/ tracking_point_update_rate) 
@@ -105,12 +107,17 @@ def main():
     radius = 0.2
     print(f"Initial position: ({x0}, {y0}, {z0})")
 
-    x_plan, z_plan = generate_circular_trajectory(center=torch.tensor([x0-radius, z0]), radius=radius, num_points=num_points+1)
-    #x_plan, z_plan = generate_linear_trajectory_x_axis(torch.tensor([x0, z0]), length=0.2, num_points=num_points+1)
+    if traj_type == "circular":
+        x_plan, z_plan = generate_circular_trajectory(center=torch.tensor([x0-radius, z0]), radius=radius, num_points=num_points+1)
+    else:
+        x_plan, z_plan = generate_linear_trajectory_x_axis(torch.tensor([x0, z0]), length=0.2, num_points=num_points+1)
+
     # Delete first point since it is the initial position
     x_plan = x_plan[1:]
+    y_plan = torch.zeros_like(x_plan) + y0
     z_plan = z_plan[1:]
     x_real = torch.zeros_like(x_plan)
+    y_real = torch.zeros_like(x_plan)
     z_real = torch.zeros_like(z_plan)
     idx = 0
     steps = 0
@@ -130,6 +137,7 @@ def main():
                 # Store real trajectory
                 if steps % tracking_point_update_rate == 0:
                     x_real[idx] = obs[0, -9]
+                    y_real[idx] = obs[0, -8]
                     z_real[idx] = obs[0, -7]
                     idx += 1 
 
@@ -138,12 +146,17 @@ def main():
             if steps == int(traj_time / dt) + tracking_point_update_rate:
                 # Store last point
                 x_real[idx] = obs[0, -9]
+                y_real[idx] = obs[0, -8]
                 z_real[idx] = obs[0, -7]
                 
                 print(f"Mean tracking error: {torch.mean(torch.abs(x_plan - x_real))}" )
-                plot_circular_trajectory(x_plan, z_plan, x_real, z_real, torch.tensor([x0, z0]))
-                #plot_linear_trajectory(x_plan, z_plan, x_real, z_real)
-                plot_real_vs_expected(x_plan, z_plan, x_real, z_real, sec_per_point=dt*tracking_point_update_rate)
+                if traj_type == "circular":
+                    plot_circular_trajectory(x_plan, z_plan, x_real, z_real, torch.tensor([x0, z0]))
+                else:
+                    plot_linear_trajectory(x_plan, z_plan, x_real, z_real)
+                
+
+                plot_real_vs_expected(x_plan, y_plan, z_plan, x_real, y_real, z_real, sec_per_point=dt*tracking_point_update_rate)
                 break
 
     # close the simulator
@@ -185,18 +198,20 @@ def plot_linear_trajectory(x_plan, y_plan, x_real, y_real):
     plt.grid(True)
     plt.show()
 
-def plot_real_vs_expected(x_plan, y_plan, x_real, y_real, sec_per_point=0.05):
+def plot_real_vs_expected(x_plan, y_plan, z_plan, x_real, y_real, z_real, sec_per_point=0.05):
     # Plotting the real vs expected trajectory
     time = np.arange(1, len(x_plan)+1) * sec_per_point
     plt.figure(figsize=(6, 6))
-    plt.plot(time, x_plan.numpy(), 'b-')
+    plt.plot(time, x_plan.numpy(), 'm-')
     plt.plot(time, x_real.numpy(), 'r-')
     plt.plot(time, y_plan.numpy(), 'g-')
     plt.plot(time, y_real.numpy(), 'y-')
+    plt.plot(time, z_plan.numpy(), 'c-')
+    plt.plot(time, z_real.numpy(), 'b-')
     plt.title('Real vs Planned Trajectory')
     plt.xlabel('Time')
     plt.ylabel('Position (m)')
-    plt.legend(['X-Plan', 'X-Real', 'Z-Plan', 'Z-Real'])
+    plt.legend(['X-Plan', 'X-Real', 'Y-Plan', 'Y-Real', 'Z-Plan', 'Z-Real'])
     plt.grid(True)
     plt.show()
 
