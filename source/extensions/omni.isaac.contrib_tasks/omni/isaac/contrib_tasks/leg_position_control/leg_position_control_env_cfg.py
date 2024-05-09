@@ -253,10 +253,10 @@ sigma_orient_track = 0.5
 '''
 # LOGARITHMIC REWARD
 # POSITION TRACKING
-weight_pos_track = 2.5
+weight_pos_track = 15.0
 epsilon_pos_track = 1e-5
 # ORIENTATION TRACKING
-weight_orient_track = 1.0
+weight_orient_track = 15.0
 epsilon_orient_track = 1e-5
 
 
@@ -363,11 +363,15 @@ class RewardsCfg:
     # -- penalties
     dof_vel_l2 = RewTerm(func=mdp.joint_vel_l2, weight=-0.0)
     dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-5.0e-6)
-    dof_power_l2 = RewTerm(func=mdp.joint_power_l2, weight=-0.025)
+    dof_power_l2 = RewTerm(func=mdp.joint_power_l2, weight=-0.005)
     dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-0.0)
-    body_lin_acc = RewTerm(func=mdp.body_lin_acc_l2, weight=-1.0e-3)
-    body_ang_acc = RewTerm(func=mdp.body_ang_acc_l2, weight=-1.0e-3)
-    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.01)
+    body_lin_acc = RewTerm(func=mdp.body_lin_acc_l2,
+                           weight=-1.0e-3,
+                           params={"asset_cfg": SceneEntityCfg("robot", body_names=[".*body", ".*gecko"])})
+    body_ang_acc = RewTerm(func=mdp.body_ang_acc_l2,
+                           weight=-1.0e-3,
+                           params={"asset_cfg": SceneEntityCfg("robot", body_names=[".*body", ".*gecko"])})
+    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.001)
     undesired_contacts = RewTerm(
         func=mdp.undesired_contacts,
         weight=-1.0,
@@ -435,9 +439,9 @@ class LegPositionControlEnvCfg(RLTaskEnvCfg):
     def __post_init__(self):
         """Post initialization."""
         # general settings
-        self.decimation = 2
+        self.decimation = 8
         self.episode_length_s = 12.0
         # simulation settings
-        self.sim.dt = 0.005
+        self.sim.dt = 0.0025
         self.sim.gravity = (0.0, 0.0, 0.0) #remove gravity
         self.sim.disable_contact_processing = True
