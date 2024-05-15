@@ -25,6 +25,7 @@ parser.add_argument(
 )
 parser.add_argument("--task", type=str, default=None, help="Name of the task.")
 parser.add_argument("--seed", type=int, default=None, help="Seed used for the environment")
+parser.add_argument("--traj", type=str, default="circular", help="Type of trajectory to follow")
 # append RSL-RL cli arguments
 cli_args.add_rsl_rl_args(parser)
 # append AppLauncher cli args
@@ -96,7 +97,12 @@ def main():
 
     # Get trajectory
     # Configuration
-    traj_time = 10.0 #s
+    leg_id = ["LF", "LH", "RF", "RH"]
+    traj_type = args_cli.traj
+    if traj_type == "circular":
+        traj_time = 15.0 #s
+    else:
+        traj_time = 10.0 #s
     dt = env.unwrapped.step_dt
     tracking_point_update_rate = 10 #steps per update
     num_points = int((traj_time / dt)/ tracking_point_update_rate) 
@@ -109,10 +115,15 @@ def main():
     real_traj = torch.zeros((4, num_points, 3))
     for i in range(4):
         offset = i * 3     
-        init_pos[i,0], init_pos[i,1], init_pos[i,2] = obs[0, 84+offset].item(), obs[0, 85+offset].item(), obs[0,86+offset].item() # initial position
+        init_pos[i,0], init_pos[i,1], init_pos[i,2] = obs[0, 85+offset].item(), obs[0, 86+offset].item(), obs[0,87+offset].item() # initial position
 
-        # Generate circular trajectory
-        x_plan, z_plan = generate_circular_trajectory(center=torch.tensor([init_pos[i,0]-radius, init_pos[i,2]]), radius=radius, num_points=num_points+1)
+        if traj_type == "circular":
+            # Generate circular trajectory
+            x_plan, z_plan = generate_semicircular_trajectory(center=torch.tensor([init_pos[i,0]+radius, init_pos[i,2]]), radius=radius, num_points=num_points+1)
+        else:
+            # Generate linear trajectory
+            x_plan, z_plan = generate_linear_trajectory_x_axis(torch.tensor([init_pos[i,0], init_pos[i,2]]), length=0.2, num_points=num_points+1)
+
         planned_traj[i, :, 0] = x_plan[1:]
         planned_traj[i, :, 1] = torch.ones(num_points) * init_pos[i,1]
         planned_traj[i, :, 2] = z_plan[1:]
@@ -127,27 +138,27 @@ def main():
         with torch.inference_mode():
             # Override position command for each leg
             # LF
-            obs[:,56:59] = torch.tensor([planned_traj[0, idx, 0], planned_traj[0, idx, 1], planned_traj[0, idx, 2]], device=obs.device)
+            obs[:,57:60] = torch.tensor([planned_traj[0, idx, 0], planned_traj[0, idx, 1], planned_traj[0, idx, 2]], device=obs.device)
             # LH
-            obs[:,63:66] = torch.tensor([planned_traj[1, idx, 0], planned_traj[1, idx, 1], planned_traj[1, idx, 2]], device=obs.device)
+            obs[:,64:67] = torch.tensor([planned_traj[1, idx, 0], planned_traj[1, idx, 1], planned_traj[1, idx, 2]], device=obs.device)
             # RF
-            obs[:,70:73] = torch.tensor([planned_traj[2, idx, 0], planned_traj[2, idx, 1], planned_traj[2, idx, 2]], device=obs.device)
+            obs[:,71:74] = torch.tensor([planned_traj[2, idx, 0], planned_traj[2, idx, 1], planned_traj[2, idx, 2]], device=obs.device)
             # RH
-            obs[:,77:80] = torch.tensor([planned_traj[3, idx, 0], planned_traj[3, idx, 1], planned_traj[3, idx, 2]], device=obs.device)
+            obs[:,78:81] = torch.tensor([planned_traj[3, idx, 0], planned_traj[3, idx, 1], planned_traj[3, idx, 2]], device=obs.device)
 
             # agent stepping
             actions = policy(obs)
             # env stepping
             obs, _, _, _ = env.step(actions)
 
-            if idx < (len(x_plan) - 1):
+            if idx < num_points-1:
                 # Store real trajectory
                 if steps % tracking_point_update_rate == 0:
                     for i in range(4):
                         offset = i * 3
-                        real_traj[i, idx, 0] = obs[0, 84+offset].item()
-                        real_traj[i, idx, 1] = obs[0, 85+offset].item()
-                        real_traj[i, idx, 2] = obs[0, 86+offset].item()
+                        real_traj[i, idx, 0] = obs[0, 85+offset].item()
+                        real_traj[i, idx, 1] = obs[0, 86+offset].item()
+                        real_traj[i, idx, 2] = obs[0, 87+offset].item()
                     idx += 1 
 
             steps = env.unwrapped.common_step_counter
@@ -156,70 +167,76 @@ def main():
                 # Store last point
                 for i in range(4):
                     offset = i * 3
-                    real_traj[i, idx, 0] = obs[0, 84+offset].item()
-                    real_traj[i, idx, 1] = obs[0, 85+offset].item()
-                    real_traj[i, idx, 2] = obs[0, 86+offset].item()
+                    real_traj[i, idx, 0] = obs[0, 85+offset].item()
+                    real_traj[i, idx, 1] = obs[0, 86+offset].item()
+                    real_traj[i, idx, 2] = obs[0, 87+offset].item()
                 
                 print(f"Mean tracking error: {torch.mean(torch.abs(planned_traj - real_traj))}")
                 # Plot trajectories for each leg
                 for i in range(4):
-                    print(f"Leg {i}: Circular trajectory")
-                    plot_circular_trajectory(planned_traj[i, :, 0], planned_traj[i, :, 2], real_traj[i, :, 0], real_traj[i, :, 2], torch.tensor([init_pos[i,0], init_pos[i,2]]), title=f"Leg {i}: Circular Trajectory")
-                    #plot_linear_trajectory(x_plan, z_plan, x_real, z_real)
-                    plot_real_vs_expected(planned_traj[i, :, 0], planned_traj[i, :, 2], real_traj[i, :, 0], real_traj[i, :, 2], sec_per_point=dt*tracking_point_update_rate)
+                    if traj_type == "circular":
+                        plot_circular_trajectory(planned_traj[i, :, 0], planned_traj[i, :, 2], real_traj[i, :, 0], real_traj[i, :, 2], torch.tensor([init_pos[i,0], init_pos[i,2]]), leg_name=leg_id[i])
+                    else:
+                        plot_linear_trajectory(planned_traj[i, :, 0], planned_traj[i, :, 2], real_traj[i, :, 0], real_traj[i, :, 2], leg_name=leg_id[i])
+                    
+                    plot_real_vs_expected(planned_traj[i, :, 0], planned_traj[i, :, 1], planned_traj[i, :, 2], real_traj[i, :, 0], real_traj[i, :, 1], real_traj[i, :, 2], sec_per_point=dt*tracking_point_update_rate, leg_name=leg_id[i])
                 break
 
     # close the simulator
     env.close()
 
-def generate_circular_trajectory(center, radius, num_points):
-    angles = torch.linspace(0, 2 * torch.tensor(3.14159265358979323846), num_points)
-    x = center[0] + radius * torch.cos(angles)
+def generate_semicircular_trajectory(center, radius, num_points):
+    angles = torch.linspace(0, torch.tensor(3.14159265358979323846), num_points)
+    x = center[0] - radius * torch.cos(angles)
     y = center[1] + radius * torch.sin(angles)
     return x, y
 
 def generate_linear_trajectory_x_axis(x0, length, num_points):
     t = torch.linspace(0, 1, num_points)
-    trajectory = x0 + t.view(-1, 1) * length * torch.tensor([1.0, 0.0])  # Direction along X-axis
+    trajectory = x0 + t.view(-1, 1) * length * torch.tensor([1.0, 1.0])  # Direction along X-axis
     return trajectory[:, 0], trajectory[:, 1]
 
-def plot_circular_trajectory(x_plan, y_plan, x_real, y_real, center, title="Circular Trajectory"):
+def plot_circular_trajectory(x_plan, y_plan, x_real, y_real, center, leg_name="LF"):
     # Plotting the circular trajectory
     plt.figure(figsize=(6, 6))
     plt.plot(x_plan.numpy(), y_plan.numpy(), 'b-')
     plt.plot(x_real.numpy(), y_real.numpy(), 'r-')
     plt.plot(center[0].item(), center[1].item(), 'go')  # Plotting the center point
     plt.axis('equal')
-    plt.title(title)
-    plt.xlabel('X')
-    plt.ylabel('Z')
+    plt.title(leg_name + ' Arc Trajectory')
+    plt.xlabel('X (m)')
+    plt.ylabel('Z (m)')
+    plt.legend(['Planned', 'Real'])
     plt.grid(True)
     plt.show()
 
-def plot_linear_trajectory(x_plan, y_plan, x_real, y_real):
+def plot_linear_trajectory(x_plan, y_plan, x_real, y_real, leg_name="LF"):
     # Plotting the linear trajectory
     plt.figure(figsize=(6, 6))
     plt.plot(x_plan.numpy(), y_plan.numpy(), 'b-')
     plt.plot(x_real.numpy(), y_real.numpy(), 'r-')
     plt.axis('equal')
-    plt.title('Linear Trajectory')
-    plt.xlabel('X')
-    plt.ylabel('Z')
+    plt.title(leg_name + ' Linear Trajectory')
+    plt.xlabel('X (m)')
+    plt.ylabel('Z (m)')
+    plt.legend(['Planned', 'Real'])
     plt.grid(True)
     plt.show()
 
-def plot_real_vs_expected(x_plan, y_plan, x_real, y_real, sec_per_point=0.05):
+def plot_real_vs_expected(x_plan, y_plan, z_plan, x_real, y_real, z_real, sec_per_point=0.05, leg_name="LF"):
     # Plotting the real vs expected trajectory
     time = np.arange(1, len(x_plan)+1) * sec_per_point
     plt.figure(figsize=(6, 6))
-    plt.plot(time, x_plan.numpy(), 'b-')
+    plt.plot(time, x_plan.numpy(), 'm-')
     plt.plot(time, x_real.numpy(), 'r-')
     plt.plot(time, y_plan.numpy(), 'g-')
     plt.plot(time, y_real.numpy(), 'y-')
-    plt.title('Real vs Planned Trajectory')
-    plt.xlabel('Time')
+    plt.plot(time, z_plan.numpy(), 'c-')
+    plt.plot(time, z_real.numpy(), 'b-')
+    plt.title(leg_name + ' Real vs Planned Trajectory')
+    plt.xlabel('Time (s)')
     plt.ylabel('Position (m)')
-    plt.legend(['X-Plan', 'X-Real', 'Z-Plan', 'Z-Real'])
+    plt.legend(['X-Plan', 'X-Real', 'Y-Plan', 'Y-Real', 'Z-Plan', 'Z-Real'])
     plt.grid(True)
     plt.show()
 
