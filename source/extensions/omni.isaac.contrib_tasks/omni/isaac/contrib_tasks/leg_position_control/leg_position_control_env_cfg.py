@@ -165,16 +165,16 @@ class ObservationsCfg:
             func=mdp.projected_gravity,
         ) # 6-8
         joint_pos = ObsTerm(func=mdp.joint_pos_rel) # 9 - 32
-        joint_vel = ObsTerm(func=mdp.joint_vel_rel) # 32 - 55
-        LF_foot_pos_des = ObsTerm(func=mdp.generated_commands, params={"command_name": "LF_pose"}) # 56 - 62
-        LH_foot_pos_des = ObsTerm(func=mdp.generated_commands, params={"command_name": "LH_pose"}) # 63 - 69
-        RF_foot_pos_des = ObsTerm(func=mdp.generated_commands, params={"command_name": "RF_pose"}) # 70 - 76
-        RH_foot_pos_des = ObsTerm(func=mdp.generated_commands, params={"command_name": "RH_pose"}) # 77 - 83
-        LF_foot_pos = ObsTerm(func=mdp.foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*LF_gecko")}) # 84 - 86
-        LH_foot_pos = ObsTerm(func=mdp.foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*LH_gecko")}) # 87 - 89
-        RF_foot_pos = ObsTerm(func=mdp.foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*RF_gecko")}) # 90 - 92
-        RH_foot_pos = ObsTerm(func=mdp.foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*RH_gecko")}) # 93 - 95
-        actions = ObsTerm(func=mdp.last_action) # 96 - 120
+        joint_vel = ObsTerm(func=mdp.joint_vel_rel) # 33 - 56
+        LF_foot_pos_des = ObsTerm(func=mdp.generated_commands, params={"command_name": "LF_pose"}) # 57 - 63
+        LH_foot_pos_des = ObsTerm(func=mdp.generated_commands, params={"command_name": "LH_pose"}) # 64 - 70
+        RF_foot_pos_des = ObsTerm(func=mdp.generated_commands, params={"command_name": "RF_pose"}) # 71 - 77
+        RH_foot_pos_des = ObsTerm(func=mdp.generated_commands, params={"command_name": "RH_pose"}) # 78 - 84
+        LF_foot_pos = ObsTerm(func=mdp.foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*LF_gecko")}) # 85 - 87
+        LH_foot_pos = ObsTerm(func=mdp.foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*LH_gecko")}) # 88 - 90
+        RF_foot_pos = ObsTerm(func=mdp.foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*RF_gecko")}) # 91 - 93
+        RH_foot_pos = ObsTerm(func=mdp.foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*RH_gecko")}) # 94 - 96
+        actions = ObsTerm(func=mdp.last_action) # 97 - 120
 
         def __post_init__(self):
             self.enable_corruption = True
@@ -384,7 +384,7 @@ class RewardsCfg:
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*body"), "threshold": 1.0},
     )
     # -- optional penalties
-    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=0.0)
+    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-1.0)
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
 
 
@@ -439,9 +439,9 @@ class LegPositionControlEnvCfg(RLTaskEnvCfg):
     def __post_init__(self):
         """Post initialization."""
         # general settings
-        self.decimation = 8
+        self.decimation = 4
         self.episode_length_s = 12.0
         # simulation settings
-        self.sim.dt = 0.0025
+        self.sim.dt = 0.005
         self.sim.gravity = (0.0, 0.0, 0.0) #remove gravity
         self.sim.disable_contact_processing = True
