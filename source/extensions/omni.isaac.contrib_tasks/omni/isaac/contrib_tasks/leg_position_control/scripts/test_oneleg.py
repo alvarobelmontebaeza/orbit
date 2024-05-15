@@ -97,8 +97,9 @@ def main():
 
     # Get trajectory
     # Configuration
+    leg_name = "LF"
     traj_type = args_cli.traj
-    traj_time = 10.0 #s
+    traj_time = 15.0 #s
     dt = env.unwrapped.step_dt
     tracking_point_update_rate = 10 #steps per update
     num_points = int((traj_time / dt)/ tracking_point_update_rate) 
@@ -108,7 +109,7 @@ def main():
     print(f"Initial position: ({x0}, {y0}, {z0})")
 
     if traj_type == "circular":
-        x_plan, z_plan = generate_circular_trajectory(center=torch.tensor([x0-radius, z0]), radius=radius, num_points=num_points+1)
+        x_plan, z_plan = generate_semicircular_trajectory(center=torch.tensor([x0+radius, z0]), radius=radius, num_points=num_points+1)
     else:
         x_plan, z_plan = generate_linear_trajectory_x_axis(torch.tensor([x0, z0]), length=0.2, num_points=num_points+1)
 
@@ -133,7 +134,7 @@ def main():
             # env stepping
             obs, _, _, _ = env.step(actions)
 
-            if idx < (len(x_plan) - 1):
+            if idx < (num_points - 1):
                 # Store real trajectory
                 if steps % tracking_point_update_rate == 0:
                     x_real[idx] = obs[0, -9]
@@ -151,54 +152,56 @@ def main():
                 
                 print(f"Mean tracking error: {torch.mean(torch.abs(x_plan - x_real))}" )
                 if traj_type == "circular":
-                    plot_circular_trajectory(x_plan, z_plan, x_real, z_real, torch.tensor([x0, z0]))
+                    plot_circular_trajectory(x_plan, z_plan, x_real, z_real, torch.tensor([x0, z0]), leg_name)
                 else:
-                    plot_linear_trajectory(x_plan, z_plan, x_real, z_real)
+                    plot_linear_trajectory(x_plan, z_plan, x_real, z_real, leg_name)
                 
 
-                plot_real_vs_expected(x_plan, y_plan, z_plan, x_real, y_real, z_real, sec_per_point=dt*tracking_point_update_rate)
+                plot_real_vs_expected(x_plan, y_plan, z_plan, x_real, y_real, z_real, sec_per_point=dt*tracking_point_update_rate, leg_name=leg_name)
                 break
 
     # close the simulator
     env.close()
 
-def generate_circular_trajectory(center, radius, num_points):
-    angles = torch.linspace(0, 2 * torch.tensor(3.14159265358979323846), num_points)
-    x = center[0] + radius * torch.cos(angles)
+def generate_semicircular_trajectory(center, radius, num_points):
+    angles = torch.linspace(0, torch.tensor(3.14159265358979323846), num_points)
+    x = center[0] - radius * torch.cos(angles)
     y = center[1] + radius * torch.sin(angles)
     return x, y
 
 def generate_linear_trajectory_x_axis(x0, length, num_points):
     t = torch.linspace(0, 1, num_points)
-    trajectory = x0 + t.view(-1, 1) * length * torch.tensor([1.0, 0.0])  # Direction along X-axis
+    trajectory = x0 + t.view(-1, 1) * length * torch.tensor([1.0, 1.0])  # Direction along X-axis
     return trajectory[:, 0], trajectory[:, 1]
 
-def plot_circular_trajectory(x_plan, y_plan, x_real, y_real, center):
+def plot_circular_trajectory(x_plan, y_plan, x_real, y_real, center, leg_name="LF"):
     # Plotting the circular trajectory
     plt.figure(figsize=(6, 6))
     plt.plot(x_plan.numpy(), y_plan.numpy(), 'b-')
     plt.plot(x_real.numpy(), y_real.numpy(), 'r-')
     plt.plot(center[0].item(), center[1].item(), 'go')  # Plotting the center point
     plt.axis('equal')
-    plt.title('Circular Trajectory')
-    plt.xlabel('X')
-    plt.ylabel('Z')
+    plt.title(leg_name + ' Arc Trajectory')
+    plt.xlabel('X (m)')
+    plt.ylabel('Z (m)')
+    plt.legend(['Planned', 'Real'])
     plt.grid(True)
     plt.show()
 
-def plot_linear_trajectory(x_plan, y_plan, x_real, y_real):
+def plot_linear_trajectory(x_plan, y_plan, x_real, y_real, leg_name="LF"):
     # Plotting the linear trajectory
     plt.figure(figsize=(6, 6))
     plt.plot(x_plan.numpy(), y_plan.numpy(), 'b-')
     plt.plot(x_real.numpy(), y_real.numpy(), 'r-')
     plt.axis('equal')
-    plt.title('Linear Trajectory')
-    plt.xlabel('X')
-    plt.ylabel('Z')
+    plt.title(leg_name + ' Linear Trajectory')
+    plt.xlabel('X (m)')
+    plt.ylabel('Z (m)')
+    plt.legend(['Planned', 'Real'])
     plt.grid(True)
     plt.show()
 
-def plot_real_vs_expected(x_plan, y_plan, z_plan, x_real, y_real, z_real, sec_per_point=0.05):
+def plot_real_vs_expected(x_plan, y_plan, z_plan, x_real, y_real, z_real, sec_per_point=0.05, leg_name="LF"):
     # Plotting the real vs expected trajectory
     time = np.arange(1, len(x_plan)+1) * sec_per_point
     plt.figure(figsize=(6, 6))
@@ -208,8 +211,8 @@ def plot_real_vs_expected(x_plan, y_plan, z_plan, x_real, y_real, z_real, sec_pe
     plt.plot(time, y_real.numpy(), 'y-')
     plt.plot(time, z_plan.numpy(), 'c-')
     plt.plot(time, z_real.numpy(), 'b-')
-    plt.title('Real vs Planned Trajectory')
-    plt.xlabel('Time')
+    plt.title(leg_name + ' Real vs Planned Trajectory')
+    plt.xlabel('Time (s)')
     plt.ylabel('Position (m)')
     plt.legend(['X-Plan', 'X-Real', 'Y-Plan', 'Y-Real', 'Z-Plan', 'Z-Real'])
     plt.grid(True)
