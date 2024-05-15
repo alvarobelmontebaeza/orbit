@@ -90,29 +90,31 @@ class TakoOneLegPositionControlEnvCfg(LegPositionControlEnvCfg):
 
         # Remove parts of the MDP specific for the other legs
         # Remove rewards for non-used legs
-        self.rewards.LH_pos_tracking = None
-        self.rewards.LH_orient_tracking = None
         self.rewards.RF_pos_tracking = None
         self.rewards.RF_orient_tracking = None
+        self.rewards.LH_pos_tracking = None
+        self.rewards.LH_orient_tracking = None
         self.rewards.RH_pos_tracking = None
         self.rewards.RH_orient_tracking = None
 
         # Adjust reward weights
+        self.rewards.LF_pos_tracking.weight = 2.5
+        self.rewards.LF_orient_tracking.weight = 1.0
         self.rewards.dof_power_l2.weight = -0.05
         self.rewards.action_rate_l2.weight = -0.01
 
         # Remove observations for non-used legs
-        self.observations.policy.LH_foot_pos_des = None
         self.observations.policy.RF_foot_pos_des = None
+        self.observations.policy.LH_foot_pos_des = None
         self.observations.policy.RH_foot_pos_des = None
 
-        self.observations.policy.LH_foot_pos = None
         self.observations.policy.RF_foot_pos = None
+        self.observations.policy.LH_foot_pos = None
         self.observations.policy.RH_foot_pos = None
 
         # Remove commands for non-used legs
-        self.commands.LH_pose = None
         self.commands.RF_pose = None
+        self.commands.LH_pose = None
         self.commands.RH_pose = None
 
         # override command generator
@@ -123,7 +125,7 @@ class TakoOneLegPositionControlEnvCfg(LegPositionControlEnvCfg):
 
         # override actions
         self.actions.legs_joint_position = mdp.JointPositionActionCfg(
-            asset_name="robot", joint_names=[leg_prefix + ".*"], scale=1.0,
+            asset_name="robot", joint_names=[leg_prefix + ".*"], scale=0.5,
         )
         
 @configclass
