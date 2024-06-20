@@ -22,6 +22,24 @@ class TakoRoughEnvCfg(LocomotionPositionRoughEnvCfg):
         # switch robot to Tako
         self.scene.robot = TAKO_CFG.replace(prim_path="{ENV_REGEX_NS}/tako")
 
+        feet_init_pos = {
+            "LF": [0.55, 0.9, -0.5],
+            "LH": [-0.3, 0.9, -0.5],
+            "RF": [0.55, -0.73, -0.5],
+            "RH": [-0.3, -0.73, -0.5],
+        }
+        # override command generator
+        # Set command generator to sample points around the foot initial position
+        for leg_prefix in feet_init_pos.keys():
+            command_name = leg_prefix + "_pose"
+            leg_command = getattr(self.commands, command_name)
+            leg_command.ranges.pos_x = (feet_init_pos[leg_prefix][0] - 0.2, feet_init_pos[leg_prefix][0] + 0.2)
+            leg_command.ranges.pos_y = (feet_init_pos[leg_prefix][1] - 0.2, feet_init_pos[leg_prefix][1] + 0.2)
+            leg_command.ranges.pos_z = (feet_init_pos[leg_prefix][2] - 0.2, feet_init_pos[leg_prefix][2] + 0.2)
+        
+        # Set base position command height ranges
+        self.commands.base_position.ranges.pos_z = (0.8*self.scene.robot.init_state.pos[2], 1.2*self.scene.robot.init_state.pos[2])
+
 
 @configclass
 class TakoRoughEnvCfg_PLAY(TakoRoughEnvCfg):
