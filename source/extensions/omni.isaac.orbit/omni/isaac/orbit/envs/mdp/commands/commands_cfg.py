@@ -145,6 +145,8 @@ class UniformPose2dCommandCfg(CommandTermCfg):
         """Range for the x position (in m)."""
         pos_y: tuple[float, float] = MISSING
         """Range for the y position (in m)."""
+        pos_z: tuple[float, float] = MISSING
+        """Range for the z position (in m)."""
         heading: tuple[float, float] = MISSING
         """Heading range for the position commands (in rad).
 

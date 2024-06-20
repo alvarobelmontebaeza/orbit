@@ -87,7 +87,10 @@ class UniformPose2dCommand(CommandTerm):
         r = torch.empty(len(env_ids), device=self.device)
         self.pos_command_w[env_ids, 0] += r.uniform_(*self.cfg.ranges.pos_x)
         self.pos_command_w[env_ids, 1] += r.uniform_(*self.cfg.ranges.pos_y)
-        self.pos_command_w[env_ids, 2] += self.robot.data.default_root_state[env_ids, 2]
+        if self.cfg.ranges.pos_z is not None:
+            self.pos_command_w[env_ids, 2] += r.uniform_(*self.cfg.ranges.pos_z)
+        else:
+            self.pos_command_w[env_ids, 2] += self.robot.data.default_root_state[env_ids, 2]
 
         if self.cfg.simple_heading:
             # set heading command to point towards target

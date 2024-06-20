@@ -51,11 +51,22 @@ def feet_contacts(env: BaseEnv, sensor_cfg: SceneEntityCfg) -> torch.Tensor:
     # check the number of feet in contact with the ground by using a force threshold in the Z direction
     feet_in_contact = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids] > 0.0
 
-    return feet_in_contact
+    return torch.sum(feet_in_contact, dim=1)
 
 """
 Actions.
 """
+def last_processed_action(env: BaseEnv, action_name: str | None = None) -> torch.Tensor:
+    """The last input action to the environment.
+
+    The name of the action term for which the action is required. If None, the
+    entire action tensor is returned.
+    """
+    if action_name is None:
+        return env.action_manager.action
+    else:
+        return env.action_manager.get_term(action_name).processed_actions
+
 
 """
 Commands.
@@ -91,4 +102,20 @@ def target_heading(env: RLTaskEnv, command_name: str) -> torch.Tensor:
     """
     command = env.command_manager.get_command(command_name)
     # obtain the desired heading
-    return command[:, 3]
+    return command[:, 3].unsqueeze(-1)
+
+def remaining_time(env: RLTaskEnv, command_name: str) -> torch.Tensor:
+    """
+    Get the remaining time for the command to reach the target.
+
+    Args:
+        env (RLTaskEnv): The RLTaskEnv object.
+        command_name (str): The name of the command.
+
+    Returns:
+        torch.Tensor: The remaining time for the command to reach the target.
+    """
+
+    # obtain the remaining time
+    remaining_time = env.command_manager.get_term(command_name).time_left
+    return remaining_time.unsqueeze(-1)
