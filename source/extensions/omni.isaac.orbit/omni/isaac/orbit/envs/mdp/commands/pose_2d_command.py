@@ -14,14 +14,14 @@ from typing import TYPE_CHECKING
 from omni.isaac.orbit.assets import Articulation
 from omni.isaac.orbit.managers import CommandTerm
 from omni.isaac.orbit.markers import VisualizationMarkers
-from omni.isaac.orbit.markers.config import GREEN_ARROW_X_MARKER_CFG
+from omni.isaac.orbit.markers.config import GREEN_ARROW_X_MARKER_CFG, FRAME_MARKER_CFG
 from omni.isaac.orbit.terrains import TerrainImporter
 from omni.isaac.orbit.utils.math import quat_from_euler_xyz, quat_rotate_inverse, wrap_to_pi, yaw_quat
 
 if TYPE_CHECKING:
     from omni.isaac.orbit.envs import BaseEnv
 
-    from .commands_cfg import TerrainBasedPose2dCommandCfg, UniformPose2dCommandCfg
+    from .commands_cfg import TerrainBasedPose2dCommandCfg, UniformPose2dCommandCfg, UniformPose3dCommandCfg
 
 
 class UniformPose2dCommand(CommandTerm):
@@ -148,6 +148,124 @@ class UniformPose2dCommand(CommandTerm):
                 self.heading_command_w,
             ),
         )
+
+class UniformPose3dCommand(CommandTerm):
+    """Command generator that generates pose commands containing a 3-D position and heading.
+
+    The command generator samples uniform 2D positions around the environment origin. It sets
+    the height of the position command to the default root height of the robot. The heading
+    command is either set to point towards the target or is sampled uniformly.
+    This can be configured through the :attr:`Pose2dCommandCfg.simple_heading` parameter in
+    the configuration.
+    """
+
+    cfg: UniformPose3dCommandCfg
+    """Configuration for the command generator."""
+
+    def __init__(self, cfg: UniformPose3dCommandCfg, env: BaseEnv):
+        """Initialize the command generator class.
+
+        Args:
+            cfg: The configuration parameters for the command generator.
+            env: The environment object.
+        """
+        # initialize the base class
+        super().__init__(cfg, env)
+
+        # obtain the robot and terrain assets
+        # -- robot
+        self.robot: Articulation = env.scene[cfg.asset_name]
+        self.body_idx = self.robot.find_bodies(cfg.body_name)[0][0]
+
+        # crete buffers to store the command
+        # -- commands: (x, y, z, qw, qx, qy, qz)
+        self.pos_command_w = torch.zeros(self.num_envs, 3, device=self.device)
+        self.rot_command_w = torch.zeros(self.num_envs, 4, device=self.device)
+        self.pos_command_b = torch.zeros_like(self.pos_command_w)
+        self.rot_command_b = torch.zeros_like(self.rot_command_w)
+        # -- metrics
+        self.metrics["error_pos_3d"] = torch.zeros(self.num_envs, device=self.device)
+        self.metrics["error_rot_3d"] = torch.zeros(self.num_envs, device=self.device)
+
+    def __str__(self) -> str:
+        msg = "PositionCommand:\n"
+        msg += f"\tCommand dimension: {tuple(self.command.shape[1:])}\n"
+        msg += f"\tResampling time range: {self.cfg.resampling_time_range}"
+        return msg
+
+    """
+    Properties
+    """
+
+    @property
+    def command(self) -> torch.Tensor:
+        """The desired 2D-pose in base frame. Shape is (num_envs, 7)."""
+        return torch.cat([self.pos_command_b, self.rot_command_b], dim=1)
+
+    """
+    Implementation specific functions.
+    """
+
+    def _resample_command(self, env_ids: Sequence[int]):
+        # obtain env origins for the environments
+        self.pos_command_w[env_ids] = self._env.scene.env_origins[env_ids]
+        # offset the position command by the current root position
+        r = torch.empty(len(env_ids), device=self.device)
+        # -- position
+        self.pos_command_w[env_ids, 0] += r.uniform_(*self.cfg.ranges.pos_x)
+        self.pos_command_w[env_ids, 1] += r.uniform_(*self.cfg.ranges.pos_y)
+        if self.cfg.ranges.pos_z is not None:
+            self.pos_command_w[env_ids, 2] += r.uniform_(*self.cfg.ranges.pos_z)
+        else:
+            self.pos_command_w[env_ids, 2] += self.robot.data.default_root_state[env_ids, 2]
+        # -- rotation
+        euler_angles = torch.zeros_like(self.rot_command_b[env_ids, :3])
+        euler_angles[:, 0].uniform_(*self.cfg.ranges.roll)
+        euler_angles[:, 1].uniform_(*self.cfg.ranges.pitch)
+        euler_angles[:, 2].uniform_(*self.cfg.ranges.yaw)
+        self.rot_command_w[env_ids, :] = quat_from_euler_xyz(
+            euler_angles[:, 0], euler_angles[:, 1], euler_angles[:, 2]
+        )
+
+    def _update_command(self):
+        """Re-target the position command to the current root state."""
+        target_vec = self.pos_command_w - self.robot.data.root_pos_w[:, :3]
+        self.pos_command_b[:] = quat_rotate_inverse(yaw_quat(self.robot.data.root_quat_w), target_vec)
+        self.rot_command_b[:] = wrap_to_pi(self.rot_command_w - self.robot.data.root_quat_w)
+
+    def _update_metrics(self):
+        # logs data
+        self.metrics["error_pos_3d"] = torch.norm(self.pos_command_w[:, :3] - self.robot.data.root_pos_w[:, :3], dim=1)
+        self.metrics["error_rot_3d"] = torch.abs(wrap_to_pi(self.rot_command_w[:, 1:] - self.robot.data.root_quat_w[:, 1:]))
+
+    def _set_debug_vis_impl(self, debug_vis: bool):
+        # create markers if necessary for the first tome
+        if debug_vis:
+            if not hasattr(self, "goal_pose_visualizer"):
+                marker_cfg = FRAME_MARKER_CFG.copy()
+                marker_cfg.markers["frame"].scale = (0.25, 0.25, 0.25)
+                # -- goal pose
+                marker_cfg.prim_path = "/Visuals/Command/goal_pose"
+                self.goal_pose_visualizer = VisualizationMarkers(marker_cfg)
+                # -- current body pose
+                marker_cfg.prim_path = "/Visuals/Command/body_pose"
+                self.body_pose_visualizer = VisualizationMarkers(marker_cfg)
+            # set their visibility to true
+            self.goal_pose_visualizer.set_visibility(True)
+            self.body_pose_visualizer.set_visibility(True)
+        else:
+            if hasattr(self, "goal_pose_visualizer"):
+                self.goal_pose_visualizer.set_visibility(False)
+                self.body_pose_visualizer.set_visibility(False)
+
+
+    def _debug_vis_callback(self, event):
+        # update the markers
+        # -- goal pose
+        self.goal_pose_visualizer.visualize(self.pos_command_w, self.rot_command_w)
+        # -- current body pose
+        body_pose_w = self.robot.data.body_state_w[:, self.body_idx]
+        self.body_pose_visualizer.visualize(body_pose_w[:, :3], body_pose_w[:, 3:7])
 
 
 class TerrainBasedPose2dCommand(UniformPose2dCommand):

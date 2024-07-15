@@ -12,7 +12,7 @@ from omni.isaac.orbit.managers import CommandTermCfg
 from omni.isaac.orbit.utils import configclass
 
 from .null_command import NullCommand
-from .pose_2d_command import TerrainBasedPose2dCommand, UniformPose2dCommand
+from .pose_2d_command import TerrainBasedPose2dCommand, UniformPose2dCommand, UniformPose3dCommand
 from .pose_command import UniformPoseCommand
 from .velocity_command import NormalVelocityCommand, UniformVelocityCommand
 
@@ -155,6 +155,35 @@ class UniformPose2dCommandCfg(CommandTermCfg):
 
     ranges: Ranges = MISSING
     """Distribution ranges for the position commands."""
+
+@configclass
+class UniformPose3dCommandCfg(CommandTermCfg):
+    """Configuration for the uniform 2D-pose command generator."""
+
+    class_type: type = UniformPose3dCommand
+
+    asset_name: str = MISSING
+    """Name of the asset in the environment for which the commands are generated."""
+    body_name: str = MISSING
+    """Name of the body in the asset for which the commands are generated."""
+
+    @configclass
+    class Ranges:
+        """Uniform distribution ranges for the position commands."""
+
+        pos_x: tuple[float, float] = MISSING
+        """Range for the x position (in m)."""
+        pos_y: tuple[float, float] = MISSING
+        """Range for the y position (in m)."""
+        pos_z: tuple[float, float] = MISSING
+        """Range for the z position (in m)."""
+        roll: tuple[float, float] = MISSING  # min max [rad]
+        pitch: tuple[float, float] = MISSING  # min max [rad]
+        yaw: tuple[float, float] = MISSING  # min max [rad]
+
+    ranges: Ranges = MISSING
+    """Distribution ranges for the position commands."""
+
 
 
 @configclass
