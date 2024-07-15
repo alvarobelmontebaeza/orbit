@@ -67,6 +67,30 @@ def last_processed_action(env: BaseEnv, action_name: str | None = None) -> torch
     else:
         return env.action_manager.get_term(action_name).processed_actions
 
+def docking_state(env: RLTaskEnv, command_name: str, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    """
+    The docking state of the robot.
+
+    Args:
+        env (BaseEnv): The environment object.
+        action_name (str): The name of the action term.
+
+    Returns:
+        torch.Tensor: The docking state of the robot.
+    """
+    # If the target position is close to the ground. we assume we want to dock. During test time, this info will be
+    # provided by the planner
+    asset: Articulation = env.scene[asset_cfg.name]
+    desired_pos = env.command_manager.get_command(command_name)[:, :3]
+    current_pos = asset.data.body_pos_w[:, asset_cfg.body_ids].view(-1, 3)
+    des_pos_w = desired_pos + asset.data.root_pos_w
+    # obtain the docking state
+    docking_state = torch.zeros_like(desired_pos[:, 0])
+    in_dock = torch.logical_and(des_pos_w[:, 2] < 0.05, torch.norm(desired_pos - current_pos, dim=1) < 0.05)
+    docking_state[in_dock] = 1.0
+
+    return docking_state
+
 
 """
 Commands.
