@@ -29,6 +29,12 @@ Feet Penalties
 Joint Penalties
 """
 
+def action_term_rate_l2(env: RLTaskEnv, term_name: str) -> torch.Tensor:
+    """Penalize the rate of change of the actions using L2-kernel."""
+    action_term_dim = env.action_manager.get_term(term_name).action_dim
+    return torch.sum(torch.square(env.action_manager.action[:action_term_dim] - env.action_manager.prev_action[:action_term_dim]), dim=1)
+
+
 def joint_power_l2(env: RLTaskEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """
     Calculates the L2 norm of the joint power for a given environment and asset configuration.
