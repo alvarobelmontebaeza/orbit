@@ -35,10 +35,10 @@ class TakoRoughEnvCfg(LocomotionPositionRoughEnvCfg):
             leg_command = getattr(self.commands, command_name)
             leg_command.ranges.pos_x = (feet_init_pos[leg_prefix][0] - 0.2, feet_init_pos[leg_prefix][0] + 0.2)
             leg_command.ranges.pos_y = (feet_init_pos[leg_prefix][1] - 0.2, feet_init_pos[leg_prefix][1] + 0.2)
-            leg_command.ranges.pos_z = (feet_init_pos[leg_prefix][2] - 0.2, feet_init_pos[leg_prefix][2] + 0.2)
+            leg_command.ranges.pos_z = (feet_init_pos[leg_prefix][2], feet_init_pos[leg_prefix][2] + 0.2)
         
         # Set base position command height ranges
-        self.commands.base_position.ranges.pos_z = (0.8*self.scene.robot.init_state.pos[2], 1.2*self.scene.robot.init_state.pos[2])
+        self.commands.base_position.ranges.pos_z = (0.95*self.scene.robot.init_state.pos[2], 1.05*self.scene.robot.init_state.pos[2])
 
 
 @configclass
