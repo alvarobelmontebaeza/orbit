@@ -117,7 +117,7 @@ class GripForceAction(ActionTerm):
     def process_actions(self, actions: torch.Tensor):
         # store the raw actions
         self._raw_actions[:] = actions
-        self._processed_actions[:] = actions
+        self._processed_actions[:] = self._max_force
         # Check if the contact sensor is activated
         air_time = self._contact_sensor.data.current_air_time[:, self._ee_bodies]
         # Check conatcts in Z axis
@@ -127,22 +127,17 @@ class GripForceAction(ActionTerm):
             self._processed_actions[no_contact] = 0.0
         
         # Scale the action by the max force
-        self._processed_actions *= self._max_force
+        # self._processed_actions *= self._max_force
 
         # Clip the action to not exceed the max force
          
-        self._processed_actions = torch.clip(
-            input=self._processed_actions,
-            min=0.0,
-            max=self._max_force,
-        ) # type: ignore
 
     def apply_actions(self):
         # apply forces to each body
         env_ids = torch.arange(self.num_envs, device=self.device)
         #self._asset.body_physx_view.set_velocities(torch.zeros((self.num_envs, self._ee_bodies[0], 6), indices=self._ee_bodies[0],device=self.device)) # type: ignore
         grip_forces = torch.zeros((self.num_envs, self._num_bodies, 3), device=self.device)
-        grip_forces[:, :, 2] = self._processed_actions
+        grip_forces[:, :, 0] = self._processed_actions
         torques = torch.zeros_like(grip_forces) # No torques are applied
         self._asset.set_external_force_and_torque(grip_forces, torques=torques, env_ids=env_ids, body_ids=self._ee_bodies) # type: ignore
 
