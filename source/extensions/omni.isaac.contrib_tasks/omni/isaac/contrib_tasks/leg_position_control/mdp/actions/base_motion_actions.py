@@ -57,7 +57,7 @@ class BodyThrusterAction(ActionTerm):
         super().__init__(cfg, env)
         
         # One thruster per cartesian axis
-        self._num_thusters = 1
+        self._num_thusters = 3
 
         # create tensors for raw and processed actions
         self._raw_actions = torch.zeros(size=(self.num_envs, self.action_dim), device=self.device)
@@ -99,14 +99,14 @@ class BodyThrusterAction(ActionTerm):
         # store the raw actions
         self._raw_actions[:] = actions        
         # Scale the action by the max force
-        self._processed_actions = torch.tanh(self._raw_actions) * self._max_push_force # Scale the actions to [-max_push_force, max_push_force]
+        #self._processed_actions = torch.tanh(self._raw_actions) * self._max_push_force # Scale the actions to [-max_push_force, max_push_force]
         self._processed_actions = torch.clip(self._raw_actions, min=-self._max_push_force, max=self._max_push_force)
 
     def apply_actions(self):
         # apply forces to each body
         env_ids = torch.arange(self.num_envs, device=self.device)
         forces = torch.zeros((self.num_envs, 1, 3), device=self.device)
-        forces[:, 0, 2] = self._processed_actions.reshape(-1)
+        forces[:, :, :] = self._processed_actions.view(self.num_envs, 1, 3)
         torques = torch.zeros_like(forces) # No torques are applied
         # Find bodies to apply the force
         body_ids, body_names = self._asset.find_bodies(".*body")
