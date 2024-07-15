@@ -31,7 +31,6 @@ import omni.isaac.contrib_tasks.locomotion.position.mdp as mdp
 from omni.isaac.contrib_tasks.leg_position_control.mdp.actions import actions_cfg
 # EE observations
 from omni.isaac.contrib_tasks.leg_position_control.mdp.observations import foot_position
-from omni.isaac.contrib_tasks.leg_position_control.mdp.rewards import orientation_command_error_ln
 
 ##
 # Pre-defined configs
@@ -76,7 +75,7 @@ class MySceneCfg(InteractiveSceneCfg):
         offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
         attach_yaw_only=True,
         pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=[1.6, 1.0]),
-        debug_vis=False,
+        debug_vis=True,
         mesh_prim_paths=["/World/ground"],
     )
     contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/tako/.*", history_length=3, track_air_time=True, debug_vis=True)
@@ -100,69 +99,74 @@ class MySceneCfg(InteractiveSceneCfg):
 class CommandsCfg:
     """Command specifications for the MDP."""
 
-    base_position = mdp.UniformPose2dCommandCfg(
+    base_position = mdp.UniformPose3dCommandCfg(
         asset_name="robot",
+        body_name=".*body",
         resampling_time_range=(10.0, 10.0),
         debug_vis=True,
-        simple_heading=False,
-        ranges=mdp.UniformPose2dCommandCfg.Ranges(
-            pos_x=(1.25, 1.75), pos_y=(-0., 0.), pos_z=None, heading=(-0.0, 0.0)
+        ranges=mdp.UniformPose3dCommandCfg.Ranges(
+            pos_x=(0.0, 0.5),
+            pos_y=(0.0, 0.0),
+            pos_z=MISSING, # Depends on init position
+            roll=(0.0, 0.0),
+            pitch=(0.0, 0.0),
+            yaw=(0.0, 0.0),
         ),
     )
 
     LF_pose = mdp.UniformPoseCommandCfg(
         asset_name="robot",
-        body_name=".*LF_gecko",
+        body_name=".*LF_dock",
         resampling_time_range=(10.0, 10.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
             pos_x=(0.0, 0.0),
             pos_y=(0.0, 0.0),
             pos_z=(0.0, 0.0),
-            roll=(math.pi, math.pi),
-            pitch=(0.0, 0.0),  # depends on end-effector axis
+            roll=(math.pi * 0.5, math.pi * 0.5),
+            pitch=(math.pi * 0.5, math.pi * 0.5),  # depends on end-effector axis
             yaw=(0.0, 0.0),
         ),
     )
     LH_pose = mdp.UniformPoseCommandCfg(
         asset_name="robot",
-        body_name=".*LH_gecko",
+        body_name=".*LH_dock",
         resampling_time_range=(10.0, 10.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
             pos_x=(0.0, 0.0),
             pos_y=(0.0, 0.0),
             pos_z=(0.0, 0.0),
-            roll=(math.pi, math.pi),
-            pitch=(0.0, 0.0),  # depends on end-effector axis
+            roll=(math.pi * 0.5, math.pi * 0.5),
+            pitch=(math.pi * 0.5, math.pi * 0.5),  # depends on end-effector axis
             yaw=(0.0, 0.0),
         ),
     )
     RF_pose = mdp.UniformPoseCommandCfg(
         asset_name="robot",
-        body_name=".*RF_gecko",
+        body_name=".*RF_dock",
         resampling_time_range=(10.0, 10.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
             pos_x=(0.0, 0.0),
             pos_y=(0.0, 0.0),
             pos_z=(0.0, 0.0),
-            roll=(math.pi, math.pi),
-            pitch=(0.0, 0.0),  # depends on end-effector axis
+            roll=(math.pi * 0.5, math.pi * 0.5),
+            pitch=(math.pi * 0.5, math.pi * 0.5),  # depends on end-effector axis
             yaw=(0.0, 0.0),
         ),
     )    
     RH_pose = mdp.UniformPoseCommandCfg(
         asset_name="robot",
-        body_name=".*RH_gecko",
+        body_name=".*RH_dock",
         resampling_time_range=(10.0, 10.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
             pos_x=(0.0, 0.0),
             pos_y=(0.0, 0.0),
             pos_z=(0.0, 0.0),
-            roll=(math.pi, math.pi),
-            pitch=(0.0, 0.0),  # depends on end-effector axis
+            roll=(math.pi * 0.5, math.pi * 0.5),
+            pitch=(math.pi * 0.5, math.pi * 0.5),  # depends on end-effector axis
             yaw=(0.0, 0.0),
         ),
     )
@@ -175,10 +179,10 @@ class ActionsCfg:
     
     ee_grip_force = actions_cfg.GripForceActionCfg(
         asset_name="robot",
-        ee_names=[".*gecko"],
-        max_force=75.0,
-        threshold=1.0,
-        sensor_cfg=SceneEntityCfg("contact_forces", body_names=".*gecko"),
+        ee_names=[".*dock"],
+        max_force=50.0,
+        threshold=5.0,
+        sensor_cfg=SceneEntityCfg("contact_forces", body_names=".*dock"),
     )
     
     body_thruster = actions_cfg.BodyThrusterActionCfg(
@@ -205,28 +209,27 @@ class ObservationsCfg:
         projected_gravity = ObsTerm(
             func=mdp.projected_gravity,
         )
-        target_position = ObsTerm(func=mdp.target_2d_position, params={"command_name": "base_position"})
-        target_heading = ObsTerm(func=mdp.target_heading, params={"command_name": "base_position"})
-        remaining_time = ObsTerm(func=mdp.remaining_time, params={"command_name": "base_position"})
+        target_position = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_position"})
+        #remaining_time = ObsTerm(func=mdp.remaining_time, params={"command_name": "base_position"})
         joint_pos = ObsTerm(func=mdp.joint_pos_rel)
         joint_vel = ObsTerm(func=mdp.joint_vel_rel)
-        actions = ObsTerm(func=mdp.last_action)
+        actions = ObsTerm(func=mdp.last_action, params={"action_name": "joint_pos"})
         grip_forces = ObsTerm(func=mdp.last_processed_action, params={"action_name": "ee_grip_force"})
         body_thruster = ObsTerm(func=mdp.last_processed_action, params={"action_name": "body_thruster"})
         LF_foot_pos_des = ObsTerm(func=mdp.generated_commands, params={"command_name": "LF_pose"}) # 57 - 63
         LH_foot_pos_des = ObsTerm(func=mdp.generated_commands, params={"command_name": "LH_pose"}) # 64 - 70
         RF_foot_pos_des = ObsTerm(func=mdp.generated_commands, params={"command_name": "RF_pose"}) # 71 - 77
         RH_foot_pos_des = ObsTerm(func=mdp.generated_commands, params={"command_name": "RH_pose"}) # 78 - 84
-        LF_foot_pos = ObsTerm(func=foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*LF_gecko")}) # 85 - 87
-        LH_foot_pos = ObsTerm(func=foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*LH_gecko")}) # 88 - 90
-        RF_foot_pos = ObsTerm(func=foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*RF_gecko")}) # 91 - 93
-        RH_foot_pos = ObsTerm(func=foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*RH_gecko")}) # 94 - 96
+        LF_foot_pos = ObsTerm(func=foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*LF_dock")}) # 85 - 87
+        LH_foot_pos = ObsTerm(func=foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*LH_dock")}) # 88 - 90
+        RF_foot_pos = ObsTerm(func=foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*RF_dock")}) # 91 - 93
+        RH_foot_pos = ObsTerm(func=foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*RH_dock")}) # 94 - 96
         height_scan = ObsTerm(
             func=mdp.height_scan,
             params={"sensor_cfg": SceneEntityCfg("height_scanner")},
             clip=(-1.0, 1.0),
         )
-        #feet_contact = ObsTerm(func=mdp.feet_contacts, params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*gecko")})
+        #feet_contact = ObsTerm(func=mdp.feet_contacts, params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*dock")})
 
         def __post_init__(self):
             self.enable_corruption = True
@@ -275,93 +278,112 @@ class EventCfg:
     )    
     
 
+weight_pos_track = 6.0
+epsilon_pos_track = 1e-5
+weight_orient_track = 6.0
+epsilon_orient_track = 1e-5
 
 @configclass
 class RewardsCfg:
     """Reward terms for the MDP."""
 
     # -- BODY POSE TRACKING
-    position_tracking = RewTerm(func=mdp.position_tracking_reward, weight=10.0, params={"command_name": "base_position"})
-    heading_tracking = RewTerm(func=mdp.heading_tracking_reward, weight=5.0, params={"command_name": "base_position"})
+    body_pose_tracking = RewTerm(
+        func=mdp.base_pose_tracking_reward, 
+        weight=10.0, 
+        params={"command_name": "base_position", "asset_cfg": SceneEntityCfg("robot", body_names=[".*body"])}
+        )
+    move_ind_direction = RewTerm(
+        func=mdp.move_in_direction_reward,
+        weight=1.0,
+        params={"command_name": "base_position"}
+    )
+    '''
+    body_orient_tracking = RewTerm(
+        func=mdp.orientation_command_error_ln,
+        weight=5.0,
+        params={"command_name": "base_position", "epsilon": 1e-5, "asset_cfg": SceneEntityCfg("robot", body_names=[".*body"])}
+        )
+        '''
     #move_in_direction = RewTerm(func=mdp.move_in_direction_reward, weight=5.0, params={"command_name": "base_position"})
 
-    # FEET POSE TRACKING
     LF_pos_tracking = RewTerm(
         func=mdp.position_command_error_ln,
-        weight=1.0,
-        params={"epsilon": 1e-5, "asset_cfg": SceneEntityCfg("robot", body_names=[".*body",".*LF_gecko"]), "base_pose_command_name": "base_position","foot_pose_command_name": "LF_pose"},
+        weight=weight_pos_track,
+        params={"epsilon": epsilon_pos_track, "asset_cfg": SceneEntityCfg("robot", body_names=".*LF_dock"), "command_name": "LF_pose"},
     )
     LH_pos_tracking = RewTerm(
         func=mdp.position_command_error_ln,
-        weight=1.0,
-        params={"epsilon": 1e-5, "asset_cfg": SceneEntityCfg("robot", body_names=[".*body",".*LH_gecko"]), "base_pose_command_name": "base_position","foot_pose_command_name": "LH_pose"},
+        weight=weight_pos_track,
+        params={"epsilon": epsilon_pos_track, "asset_cfg": SceneEntityCfg("robot", body_names=".*LH_dock"), "command_name": "LH_pose"},
     ) 
     RF_pos_tracking = RewTerm(
         func=mdp.position_command_error_ln,
-        weight=1.0,
-        params={"epsilon": 1e-5, "asset_cfg": SceneEntityCfg("robot", body_names=[".*body",".*RF_gecko"]), "base_pose_command_name": "base_position","foot_pose_command_name": "RF_pose"},
+        weight=weight_pos_track,
+        params={"epsilon": epsilon_pos_track, "asset_cfg": SceneEntityCfg("robot", body_names=".*RF_dock"), "command_name": "RF_pose"},
     ) 
     RH_pos_tracking = RewTerm(
         func=mdp.position_command_error_ln,
-        weight=1.0,
-        params={"epsilon": 1e-5, "asset_cfg": SceneEntityCfg("robot", body_names=[".*body",".*RH_gecko"]), "base_pose_command_name": "base_position","foot_pose_command_name": "RH_pose"},
+        weight=weight_pos_track,
+        params={"epsilon": epsilon_pos_track, "asset_cfg": SceneEntityCfg("robot", body_names=".*RH_dock"), "command_name": "RH_pose"},
     )  
 
     # ORIENTATION TRACKING
     LF_orient_tracking = RewTerm(
-        func=orientation_command_error_ln,
-        weight=1.0,
-        params={"epsilon": 1e-5, "asset_cfg": SceneEntityCfg("robot", body_names=".*LF_gecko"), "command_name": "LF_pose"},
+        func=mdp.orientation_command_error_ln,
+        weight=weight_orient_track,
+        params={"epsilon": epsilon_orient_track, "asset_cfg": SceneEntityCfg("robot", body_names=".*LF_dock"), "command_name": "LF_pose"},
     )
     LH_orient_tracking = RewTerm(
-        func=orientation_command_error_ln,
-        weight=1.0,
-        params={"epsilon": 1e-5,"asset_cfg": SceneEntityCfg("robot", body_names=".*LH_gecko"), "command_name": "LH_pose"},
+        func=mdp.orientation_command_error_ln,
+        weight=weight_orient_track,
+        params={"epsilon": epsilon_orient_track,"asset_cfg": SceneEntityCfg("robot", body_names=".*LH_dock"), "command_name": "LH_pose"},
     )
     RF_orient_tracking = RewTerm(
-        func=orientation_command_error_ln,
-        weight=1.0,
-        params={"epsilon": 1e-5,"asset_cfg": SceneEntityCfg("robot", body_names=".*RF_gecko"), "command_name": "RF_pose"},
+        func=mdp.orientation_command_error_ln,
+        weight=weight_orient_track,
+        params={"epsilon": epsilon_orient_track,"asset_cfg": SceneEntityCfg("robot", body_names=".*RF_dock"), "command_name": "RF_pose"},
     )
     RH_orient_tracking = RewTerm(
-        func=orientation_command_error_ln,
-        weight=1.0,
-        params={"epsilon": 1e-5, "asset_cfg": SceneEntityCfg("robot", body_names=".*RH_gecko"), "command_name": "RH_pose"},
+        func=mdp.orientation_command_error_ln,
+        weight=weight_orient_track,
+        params={"epsilon": epsilon_orient_track, "asset_cfg": SceneEntityCfg("robot", body_names=".*RH_dock"), "command_name": "RH_pose"},
     )
 
 
     # -- penalties
-    dof_vel_l2 = RewTerm(func=mdp.joint_vel_l2, weight=0.0)
-    dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=0.0)
-    dof_vel_limits = RewTerm(func=mdp.joint_vel_limits, weight=-1.0, params={"soft_ratio": 0.95})
+    #dof_vel_l2 = RewTerm(func=mdp.joint_vel_l2, weight=0.0)
+    #dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=0.0)
+    dof_power = RewTerm(func=mdp.joint_power_l2, weight=-5.0e-3)
+    dof_acc = RewTerm(func=mdp.joint_acc_l2, weight=-5.0e-6)
+    #dof_vel_limits = RewTerm(func=mdp.joint_vel_limits, weight=-1.0, params={"soft_ratio": 0.95})
     #dof_torque_limits = RewTerm(func=mdp.applied_torque_limits, weight=-0.2)
     body_lin_acc = RewTerm(func=mdp.body_lin_acc_l2, weight=-1.0e-2, params={"asset_cfg": SceneEntityCfg("robot", body_names=[".*body"])})
-    body_ang_acc = RewTerm(func=mdp.body_ang_acc_l2, weight=-1.0e-2 * 0.02, params={"asset_cfg": SceneEntityCfg("robot", body_names=[".*body"])})
-    #feet_lin_acc = RewTerm(func=mdp.body_lin_acc_l2, weight=-2.0, params={"asset_cfg": SceneEntityCfg("robot", body_names=[".*gecko"])})
-    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.01)
-    thruster_usage = RewTerm(func=mdp.action_term_l2, weight=-1.0, params={"action_name": "body_thruster"})
-    feet_contacts = RewTerm(func=mdp.feet_contacts, weight=1.0, params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*gecko"])})
-    #feet_xy_vel_in_contact = RewTerm(func=mdp.feet_xy_vel_in_contact, weight=-5.0, params={"asset_cfg": SceneEntityCfg("robot", body_names=[".*gecko"]), "sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*gecko"])})
+    body_ang_acc = RewTerm(func=mdp.body_ang_acc_l2, weight=-1.0e-2, params={"asset_cfg": SceneEntityCfg("robot", body_names=[".*body"])})
+    #feet_lin_acc = RewTerm(func=mdp.body_lin_acc_l2, weight=-2.0, params={"asset_cfg": SceneEntityCfg("robot", body_names=[".*dock"])})
+    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.0)
+    action_term_rate_l2 = RewTerm(func=mdp.action_term_rate_l2, weight=-0.01, params={"term_name": "joint_pos"})
+    thruster_usage = RewTerm(func=mdp.action_term_l2, weight=-0.1, params={"action_name": "body_thruster"})
+    #feet_contacts = RewTerm(func=mdp.feet_contacts, weight=1.0, params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*dock"])})
+    #feet_xy_vel_in_contact = RewTerm(func=mdp.feet_xy_vel_in_contact, weight=-5.0, params={"asset_cfg": SceneEntityCfg("robot", body_names=[".*dock"]), "sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*dock"])})
     stand_at_target = RewTerm(func=mdp.stand_at_target, weight=-0., params={"command_name": "base_position"})
     undesired_contacts = RewTerm(
         func=mdp.undesired_contacts,
         weight=-1.0,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*upper_arm_link", ".*forearm_link", ".*wrist.*"]), "threshold": 1.0}, 
     )
-    stumble = RewTerm(func=mdp.stumble, weight=-1.0, params={"factor": 2.0, "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*gecko")})
+    stumble = RewTerm(func=mdp.stumble, weight=-1.0, params={"factor": 2.0, "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*dock")})
     # Termination penalties
-    base_contact = RewTerm(func=mdp.illegal_contact, weight=-200.0, params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*body"), "threshold": 1.0})
-    feet_contact_num = RewTerm(func=mdp.feet_contact_num, weight=-0.0, params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*gecko"]), "threshold": 1})
+    feet_contact_num = RewTerm(func=mdp.feet_contact_num, weight=-0.0, params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*dock"]), "threshold": 1})
     unhealthy_base_position = RewTerm(
         func=mdp.unhealthy_base_position,
         weight=-200.0,
-        params={"asset_cfg": SceneEntityCfg("robot", body_names=[".*body"]), "max_height": 1.25},
+        params={"asset_cfg": SceneEntityCfg("robot", body_names=[".*body"]), "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*body")},
         )
     # -- optional penalties
-    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-5.0)
+    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-0.0)
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
-    dof_power = RewTerm(func=mdp.joint_power_l2, weight=-5.0e-3)
-    feet_power = RewTerm(func=mdp.feet_power, weight=-0.0, params={"asset_cfg": SceneEntityCfg("robot", body_names=[".*gecko"]), "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*gecko")})
+    feet_power = RewTerm(func=mdp.feet_power, weight=-0.0, params={"asset_cfg": SceneEntityCfg("robot", body_names=[".*dock"]), "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*dock")})
 
 
 @configclass
@@ -369,18 +391,14 @@ class TerminationsCfg:
     """Termination terms for the MDP."""
 
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
-    base_contact = DoneTerm(
-        func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*body"), "threshold": 1.0},
-    )
     unhealthy_base_position = DoneTerm(
         func=mdp.unhealthy_base_position,
-        params={"asset_cfg": SceneEntityCfg("robot", body_names=[".*body"]), "max_height": 1.25},
+        params={"asset_cfg": SceneEntityCfg("robot", body_names=[".*body"]), "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*body")},
         )
     '''
     no_feet_contact = DoneTerm(
         func=mdp.feet_contact_num,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*gecko"]), "threshold": 1},
+        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*dock"]), "threshold": 1},
     )
     '''
     
@@ -419,7 +437,7 @@ class LocomotionPositionRoughEnvCfg(RLTaskEnvCfg):
         """Post initialization."""
         # general settings
         self.decimation = 4
-        self.episode_length_s = 10.0
+        self.episode_length_s = 15.0
         # simulation settings
         self.sim.dt = 0.005
         self.sim.gravity = (0.0, 0.0, 0.0)
