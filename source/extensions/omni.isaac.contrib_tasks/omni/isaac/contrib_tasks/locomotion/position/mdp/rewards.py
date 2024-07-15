@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from omni.isaac.orbit.managers import SceneEntityCfg
 from omni.isaac.orbit.sensors import ContactSensor
 from omni.isaac.orbit.assets import Articulation, RigidObject
-from omni.isaac.orbit.utils.math import combine_frame_transforms
+from omni.isaac.orbit.utils.math import combine_frame_transforms, quat_mul, quat_error_magnitude
 
 if TYPE_CHECKING:
     from omni.isaac.orbit.envs import RLTaskEnv
@@ -23,6 +23,12 @@ def body_ang_acc_l2(env: RLTaskEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("
 def action_term_l2(env: RLTaskEnv, action_name: str) -> torch.Tensor:
     """Penalize the actions using L2-kernel."""
     return torch.sum(torch.square(env.action_manager.get_term(action_name).processed_actions), dim=1)
+
+def action_term_rate_l2(env: RLTaskEnv, term_name: str) -> torch.Tensor:
+    """Penalize the rate of change of the actions using L2-kernel."""
+    action_term_dim = env.action_manager.get_term(term_name).action_dim
+    return torch.sum(torch.square(env.action_manager.action[:, :action_term_dim] - env.action_manager.prev_action[:, :action_term_dim]), dim=1)
+
 
 
 """
@@ -146,7 +152,24 @@ def position_tracking_reward(env: RLTaskEnv, command_name: str, asset_cfg: Scene
     curr_pos_w = asset.data.root_pos_w
     return (1.0 - 0.5 * torch.norm(curr_pos_w[:] - des_pos_w[:], dim=1)) #* (env.command_manager.get_term(command_name).time_left < 1.0)
 
-def position_command_error_ln(env: RLTaskEnv, epsilon: float, asset_cfg: SceneEntityCfg, base_pose_command_name: str, foot_pose_command_name: str) -> torch.Tensor:
+def base_pose_tracking_reward(env: RLTaskEnv, command_name: str, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"), sigma: float = 1200.0) -> torch.Tensor:
+    # extract the asset (to enable type hinting)
+    asset: Articulation = env.scene[asset_cfg.name]
+    command = env.command_manager.get_command(command_name)
+    # obtain the desired and current positions
+    des_pos_b = command[:, :3]
+    des_orient_b = command[:, 3:7]
+    des_pos_w = des_pos_b + env.scene.env_origins
+    curr_pos_w = asset.data.root_pos_w
+    curr_orient_w = asset.data.root_quat_w
+
+    pos_error = curr_pos_w - des_pos_w
+    orient_error = quat_error_magnitude(curr_orient_w, des_orient_b)
+    pos_tracking_rew = -torch.log(1e-5 + torch.norm(pos_error,dim=1)**2) #torch.exp(-sigma * (torch.norm(pos_error, dim=1)**2))
+    rot_tracking_rew = -torch.log(1e-5 + orient_error**2) #torch.exp(-90.0 * (orient_error**2))
+    
+    return pos_tracking_rew + rot_tracking_rew
+def position_command_error_ln(env: RLTaskEnv, epsilon: float, command_name: str,asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """Penalize tracking of the position error using L2-norm.
 
     The function computes the position error between the desired position (from the command) and the
@@ -155,15 +178,28 @@ def position_command_error_ln(env: RLTaskEnv, epsilon: float, asset_cfg: SceneEn
     """
     # extract the asset (to enable type hinting)
     asset: RigidObject = env.scene[asset_cfg.name]
-    base_pos_command = env.command_manager.get_command(base_pose_command_name)
-    foot_pose_command = env.command_manager.get_command(foot_pose_command_name)
+    command = env.command_manager.get_command(command_name)
     # obtain the desired and current positions
-    des_base_pos_b = base_pos_command[:, :3] 
-    des_feet_pos_b = foot_pose_command[:, :3] 
-    des_base_pos_w, _ = combine_frame_transforms(asset.data.body_state_w[:, asset_cfg.body_ids[0],:3], asset.data.body_state_w[:, asset_cfg.body_ids[0],3:7], des_base_pos_b)
-    des_feet_pos_w = des_base_pos_w + des_feet_pos_b
-    curr_pos_w = asset.data.body_state_w[:, asset_cfg.body_ids[1], :3]  # type: ignore
-    return -torch.log(epsilon + torch.norm(curr_pos_w - des_feet_pos_w, dim=1)**2)
+    des_pos_b = command[:, :3]
+    des_pos_w, _ = combine_frame_transforms(asset.data.root_state_w[:, :3], asset.data.root_state_w[:, 3:7], des_pos_b)
+    curr_pos_w = asset.data.body_state_w[:, asset_cfg.body_ids[0], :3]  # type: ignore
+    return -torch.log(epsilon + torch.norm(curr_pos_w - des_pos_w, dim=1)**2)
+
+def orientation_command_error_ln(env: RLTaskEnv, epsilon: float, command_name: str, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    """Penalize tracking orientation error using shortest path.
+
+    The function computes the orientation error between the desired orientation (from the command) and the
+    current orientation of the asset's body (in world frame). The orientation error is computed as the shortest
+    path between the desired and current orientations.
+    """
+    # extract the asset (to enable type hinting)
+    asset: RigidObject = env.scene[asset_cfg.name]
+    command = env.command_manager.get_command(command_name)
+    # obtain the desired and current orientations
+    des_quat_b = command[:, 3:7]
+    des_quat_w = quat_mul(asset.data.root_state_w[:, 3:7], des_quat_b)
+    curr_quat_w = asset.data.body_state_w[:, asset_cfg.body_ids[0], 3:7]  # type: ignore
+    return -torch.log(epsilon + quat_error_magnitude(curr_quat_w, des_quat_w))
 
 
 def heading_tracking_reward(env: RLTaskEnv, command_name: str, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
@@ -206,10 +242,10 @@ def move_in_direction_reward(env: RLTaskEnv, command_name: str, asset_cfg: Scene
     asset: Articulation = env.scene[asset_cfg.name]
     command = env.command_manager.get_command(command_name) # Assuming 2D Pose Command, shape is (num_envs, 4), where 4 is (x, y, z, heading)
     # obtain the desired heading direction
-    target_vec = (command[:, :2] + env.scene.env_origins[:, :2]) - asset.data.root_state_w[:, :2]  # type: ignore
+    target_vec = (command[:, :3] + env.scene.env_origins[:, :3]) - asset.data.root_state_w[:, :3]  # type: ignore
     target_vec = target_vec / torch.norm(target_vec, dim=1, keepdim=True)
     # compute the current heading direction
-    curr_vel_direction = asset.data.root_lin_vel_w[:, :2]  # type: ignore
+    curr_vel_direction = asset.data.root_lin_vel_w[:, :3]  # type: ignore
     # compute the dot product between the current and desired heading directions
     return torch.cosine_similarity(curr_vel_direction, target_vec, dim=1)
 
