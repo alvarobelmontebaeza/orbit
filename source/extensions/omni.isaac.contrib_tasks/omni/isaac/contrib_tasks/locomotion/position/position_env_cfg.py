@@ -99,7 +99,7 @@ class MySceneCfg(InteractiveSceneCfg):
 class CommandsCfg:
     """Command specifications for the MDP."""
 
-    base_position = mdp.UniformPose3dCommandCfg(
+    base_pose = mdp.UniformPose3dCommandCfg(
         asset_name="robot",
         body_name=".*body",
         resampling_time_range=(10.0, 10.0),
@@ -180,7 +180,7 @@ class ActionsCfg:
     ee_grip_force = actions_cfg.GripForceActionCfg(
         asset_name="robot",
         ee_names=[".*dock"],
-        max_force=50.0,
+        max_force=25.0,
         threshold=5.0,
         sensor_cfg=SceneEntityCfg("contact_forces", body_names=".*dock"),
     )
@@ -189,8 +189,7 @@ class ActionsCfg:
         asset_name="robot",
         max_push_force=20.0,
         threshold=1.0,
-    )
-    
+    )  
 
 
 
@@ -203,27 +202,25 @@ class ObservationsCfg:
         """Observations for policy group."""
 
         # observation terms (order preserved)
-        root_pos = ObsTerm(func=mdp.root_pos_w)
-        base_lin_vel = ObsTerm(func=mdp.base_lin_vel)
-        base_ang_vel = ObsTerm(func=mdp.base_ang_vel)
-        projected_gravity = ObsTerm(
-            func=mdp.projected_gravity,
-        )
-        target_position = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_position"})
-        #remaining_time = ObsTerm(func=mdp.remaining_time, params={"command_name": "base_position"})
-        joint_pos = ObsTerm(func=mdp.joint_pos_rel)
-        joint_vel = ObsTerm(func=mdp.joint_vel_rel)
-        actions = ObsTerm(func=mdp.last_action, params={"action_name": "joint_pos"})
-        grip_forces = ObsTerm(func=mdp.last_processed_action, params={"action_name": "ee_grip_force"})
-        body_thruster = ObsTerm(func=mdp.last_processed_action, params={"action_name": "body_thruster"})
-        LF_foot_pos_des = ObsTerm(func=mdp.generated_commands, params={"command_name": "LF_pose"}) # 57 - 63
-        LH_foot_pos_des = ObsTerm(func=mdp.generated_commands, params={"command_name": "LH_pose"}) # 64 - 70
-        RF_foot_pos_des = ObsTerm(func=mdp.generated_commands, params={"command_name": "RF_pose"}) # 71 - 77
-        RH_foot_pos_des = ObsTerm(func=mdp.generated_commands, params={"command_name": "RH_pose"}) # 78 - 84
-        LF_foot_pos = ObsTerm(func=foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*LF_dock")}) # 85 - 87
-        LH_foot_pos = ObsTerm(func=foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*LH_dock")}) # 88 - 90
-        RF_foot_pos = ObsTerm(func=foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*RF_dock")}) # 91 - 93
-        RH_foot_pos = ObsTerm(func=foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*RH_dock")}) # 94 - 96
+        root_pos = ObsTerm(func=mdp.root_pos_w)  # 0 - 2
+        root_rot = ObsTerm(func=mdp.root_quat_w)  # 3 - 6
+        base_lin_vel = ObsTerm(func=mdp.base_lin_vel)  # 7 - 9
+        base_ang_vel = ObsTerm(func=mdp.base_ang_vel)  # 10 - 12
+        projected_gravity = ObsTerm(func=mdp.projected_gravity)  # 13 - 15
+        target_pose = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_pose"})  # 16 - 22
+        joint_pos = ObsTerm(func=mdp.joint_pos_rel)  # 23 - 46
+        joint_vel = ObsTerm(func=mdp.joint_vel_rel)  # 47 - 70
+        actions = ObsTerm(func=mdp.last_action, params={"action_name": "joint_pos"})  # 71 - 94
+        grip_forces = ObsTerm(func=mdp.last_processed_action, params={"action_name": "ee_grip_force"})  # 95 - 98
+        body_thruster = ObsTerm(func=mdp.last_processed_action, params={"action_name": "body_thruster"})  # 99 - 101
+        LF_foot_pos_des = ObsTerm(func=mdp.generated_commands, params={"command_name": "LF_pose"})  # 102 - 108
+        LH_foot_pos_des = ObsTerm(func=mdp.generated_commands, params={"command_name": "LH_pose"})  # 109 - 115
+        RF_foot_pos_des = ObsTerm(func=mdp.generated_commands, params={"command_name": "RF_pose"})  # 116 - 122
+        RH_foot_pos_des = ObsTerm(func=mdp.generated_commands, params={"command_name": "RH_pose"})  # 123 - 129
+        LF_foot_pos = ObsTerm(func=foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*LF_dock")})  # 130 - 132
+        LH_foot_pos = ObsTerm(func=foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*LH_dock")})  # 133 - 135
+        RF_foot_pos = ObsTerm(func=foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*RF_dock")})  # 136 - 138
+        RH_foot_pos = ObsTerm(func=foot_position, params={"asset_cfg": SceneEntityCfg("robot", body_names=".*RH_dock")})  # 139 - 141
         height_scan = ObsTerm(
             func=mdp.height_scan,
             params={"sensor_cfg": SceneEntityCfg("height_scanner")},
@@ -290,22 +287,22 @@ class RewardsCfg:
     # -- BODY POSE TRACKING
     body_pose_tracking = RewTerm(
         func=mdp.base_pose_tracking_reward, 
-        weight=10.0, 
-        params={"command_name": "base_position", "asset_cfg": SceneEntityCfg("robot", body_names=[".*body"])}
+        weight=15.0, 
+        params={"command_name": "base_pose", "asset_cfg": SceneEntityCfg("robot", body_names=[".*body"])}
         )
-    move_ind_direction = RewTerm(
+    move_in_direction = RewTerm(
         func=mdp.move_in_direction_reward,
         weight=1.0,
-        params={"command_name": "base_position"}
+        params={"command_name": "base_pose"}
     )
     '''
     body_orient_tracking = RewTerm(
         func=mdp.orientation_command_error_ln,
         weight=5.0,
-        params={"command_name": "base_position", "epsilon": 1e-5, "asset_cfg": SceneEntityCfg("robot", body_names=[".*body"])}
+        params={"command_name": "base_pose", "epsilon": 1e-5, "asset_cfg": SceneEntityCfg("robot", body_names=[".*body"])}
         )
         '''
-    #move_in_direction = RewTerm(func=mdp.move_in_direction_reward, weight=5.0, params={"command_name": "base_position"})
+    #move_in_direction = RewTerm(func=mdp.move_in_direction_reward, weight=5.0, params={"command_name": "base_pose"})
 
     LF_pos_tracking = RewTerm(
         func=mdp.position_command_error_ln,
@@ -354,7 +351,7 @@ class RewardsCfg:
     # -- penalties
     #dof_vel_l2 = RewTerm(func=mdp.joint_vel_l2, weight=0.0)
     #dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=0.0)
-    dof_power = RewTerm(func=mdp.joint_power_l2, weight=-5.0e-3)
+    dof_power = RewTerm(func=mdp.joint_power_l2, weight=-1.0e-2)
     dof_acc = RewTerm(func=mdp.joint_acc_l2, weight=-5.0e-6)
     #dof_vel_limits = RewTerm(func=mdp.joint_vel_limits, weight=-1.0, params={"soft_ratio": 0.95})
     #dof_torque_limits = RewTerm(func=mdp.applied_torque_limits, weight=-0.2)
@@ -363,10 +360,10 @@ class RewardsCfg:
     #feet_lin_acc = RewTerm(func=mdp.body_lin_acc_l2, weight=-2.0, params={"asset_cfg": SceneEntityCfg("robot", body_names=[".*dock"])})
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.0)
     action_term_rate_l2 = RewTerm(func=mdp.action_term_rate_l2, weight=-0.01, params={"term_name": "joint_pos"})
-    thruster_usage = RewTerm(func=mdp.action_term_l2, weight=-0.1, params={"action_name": "body_thruster"})
+    thruster_usage = RewTerm(func=mdp.action_term_l2, weight=-0., params={"action_name": "body_thruster"})
     #feet_contacts = RewTerm(func=mdp.feet_contacts, weight=1.0, params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*dock"])})
     #feet_xy_vel_in_contact = RewTerm(func=mdp.feet_xy_vel_in_contact, weight=-5.0, params={"asset_cfg": SceneEntityCfg("robot", body_names=[".*dock"]), "sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*dock"])})
-    stand_at_target = RewTerm(func=mdp.stand_at_target, weight=-0., params={"command_name": "base_position"})
+    stand_at_target = RewTerm(func=mdp.stand_at_target, weight=-0., params={"command_name": "base_pose"})
     undesired_contacts = RewTerm(
         func=mdp.undesired_contacts,
         weight=-1.0,
@@ -444,7 +441,7 @@ class LocomotionPositionRoughEnvCfg(RLTaskEnvCfg):
         self.sim.disable_contact_processing = True
         self.sim.physics_material = self.scene.terrain.physics_material
         # Adjust command resampling based on episode length
-        self.commands.base_position.resampling_time_range = (self.episode_length_s, self.episode_length_s)
+        self.commands.base_pose.resampling_time_range = (self.episode_length_s, self.episode_length_s)
         # Adjust rewards
         # For now, remove randomization events
         self.events.push_robot = None
