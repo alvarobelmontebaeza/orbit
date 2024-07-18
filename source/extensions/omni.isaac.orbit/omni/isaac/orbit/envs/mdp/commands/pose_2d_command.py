@@ -199,7 +199,7 @@ class UniformPose3dCommand(CommandTerm):
 
     @property
     def command(self) -> torch.Tensor:
-        """The desired 2D-pose in base frame. Shape is (num_envs, 7)."""
+        """The desired ·D-pose in base frame. Shape is (num_envs, 7)."""
         return torch.cat([self.pos_command_b, self.rot_command_b], dim=1)
 
     """
