@@ -117,7 +117,7 @@ class GripForceAction(ActionTerm):
     def process_actions(self, actions: torch.Tensor):
         # store the raw actions
         self._raw_actions[:] = actions
-        self._processed_actions[:] = self._max_force
+        self._processed_actions[:] = torch.clone(actions)
         # Check if the contact sensor is activated
         air_time = self._contact_sensor.data.current_air_time[:, self._ee_bodies]
         # Check conatcts in Z axis
@@ -127,9 +127,10 @@ class GripForceAction(ActionTerm):
             self._processed_actions[no_contact] = 0.0
         
         # Scale the action by the max force
-        # self._processed_actions *= self._max_force
+        self._processed_actions *= self._max_force
 
         # Clip the action to not exceed the max force
+        self._processed_actions = torch.clamp(self._processed_actions, min=0.0, max=self._max_force)
          
 
     def apply_actions(self):
