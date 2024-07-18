@@ -99,8 +99,9 @@ class BodyThrusterAction(ActionTerm):
         # store the raw actions
         self._raw_actions[:] = actions        
         # Scale the action by the max force
-        #self._processed_actions = torch.tanh(self._raw_actions) * self._max_push_force # Scale the actions to [-max_push_force, max_push_force]
-        self._processed_actions = torch.clip(self._raw_actions, min=-self._max_push_force, max=self._max_push_force)
+        self._processed_actions = self._raw_actions * self._max_push_force
+        # Clip the actions to the max force
+        self._processed_actions = torch.clip(self._processed_actions, min=-self._max_push_force, max=self._max_push_force)
 
     def apply_actions(self):
         # apply forces to each body
