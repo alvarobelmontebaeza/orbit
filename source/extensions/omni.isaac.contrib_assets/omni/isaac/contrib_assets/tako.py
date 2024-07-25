@@ -18,7 +18,7 @@ import math
 ##
 TAKO_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path="/home/alvaro/Desktop/tako_dock_v2.usd",
+        usd_path="/home/alvaro/Desktop/tako_dock.usd",
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
@@ -37,7 +37,7 @@ TAKO_CFG = ArticulationCfg(
         ),
     ),
     init_state=ArticulationCfg.InitialStateCfg(
-        pos=(0.0, 0.0, 0.6),
+        pos=(0.0, 0.0, 0.5),
         joint_pos={
             ".*shoulder_pan_joint": 0.0, # all HIP joints
             ".*shoulder_lift_joint": 0.0, # all shoulder joints
@@ -53,15 +53,15 @@ TAKO_CFG = ArticulationCfg(
     actuators={
         "legs": ImplicitActuatorCfg(
             joint_names_expr=[".*shoulder_pan_joint", ".*shoulder_lift_joint", ".*elbow_joint"],
-            velocity_limit=0.2, #10º/s
-            effort_limit=50.0,
+            velocity_limit=math.pi * 0.5,
+            effort_limit=150.0,
             stiffness=120.0,
             damping=20.0,
         ),
         "feet": ImplicitActuatorCfg(
             joint_names_expr=[".*wrist_1_joint", ".*wrist_2_joint", ".*wrist_3_joint"],
-            velocity_limit=0.2, #10º/s
-            effort_limit=10.0,
+            velocity_limit= math.pi * 0.5,
+            effort_limit=28.0,
             stiffness=120.0,
             damping=20.0,
         )
