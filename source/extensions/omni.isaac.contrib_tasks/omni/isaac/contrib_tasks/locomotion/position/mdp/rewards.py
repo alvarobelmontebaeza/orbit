@@ -159,16 +159,16 @@ def base_pose_tracking_reward(env: RLTaskEnv, command_name: str, asset_cfg: Scen
     # obtain the desired and current positions
     des_pos_b = command[:, :3]
     des_orient_b = command[:, 3:7]
-    des_pos_w = des_pos_b + env.scene.env_origins
+    des_pos_w = des_pos_b + torch.tensor(asset.cfg.init_state.pos, device=env.device) + env.scene.env_origins #combine_frame_transforms(asset.data.root_state_w[:, :3], asset.data.root_state_w[:, 3:7], des_pos_b) #des_pos_b + env.scene.env_origins
     curr_pos_w = asset.data.root_pos_w
     curr_orient_w = asset.data.root_quat_w
 
     pos_error = curr_pos_w - des_pos_w
     orient_error = quat_error_magnitude(curr_orient_w, des_orient_b)
     pos_tracking_rew = -torch.log(1e-5 + torch.norm(pos_error,dim=1)**2) #torch.exp(-sigma * (torch.norm(pos_error, dim=1)**2))
-    rot_tracking_rew = -torch.log(1e-5 + orient_error**2) #torch.exp(-90.0 * (orient_error**2))
+    #rot_tracking_rew = -torch.log(1e-5 + orient_error**2) #torch.exp(-90.0 * (orient_error**2))
     
-    return pos_tracking_rew + rot_tracking_rew
+    return pos_tracking_rew #+ rot_tracking_rew
 def position_command_error_ln(env: RLTaskEnv, epsilon: float, command_name: str,asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """Penalize tracking of the position error using L2-norm.
 
