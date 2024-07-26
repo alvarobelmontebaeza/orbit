@@ -41,6 +41,8 @@ class ObservationManager(ManagerBase):
         super().__init__(cfg, env)
         # compute combined vector for obs group
         self._group_obs_dim: dict[str, tuple[int, ...]] = dict()
+        self.obs_buffer = dict()
+        # prepare terms for each group
         for group_name, group_term_dims in self._group_obs_term_dim.items():
             term_dims = [torch.tensor(dims, device="cpu") for dims in group_term_dims]
             self._group_obs_dim[group_name] = tuple(torch.sum(torch.stack(term_dims, dim=0), dim=0).tolist())
@@ -119,12 +121,12 @@ class ObservationManager(ManagerBase):
             A dictionary with keys as the group names and values as the computed observations.
         """
         # create a buffer for storing obs from all the groups
-        obs_buffer = dict()
+        self.obs_buffer = dict()
         # iterate over all the terms in each group
         for group_name in self._group_obs_term_names:
-            obs_buffer[group_name] = self.compute_group(group_name)
+            self.obs_buffer[group_name] = self.compute_group(group_name)
         # otherwise return a dict with observations of all groups
-        return obs_buffer
+        return self.obs_buffer
 
     def compute_group(self, group_name: str) -> torch.Tensor | dict[str, torch.Tensor]:
         """Computes the observations for a given group.
