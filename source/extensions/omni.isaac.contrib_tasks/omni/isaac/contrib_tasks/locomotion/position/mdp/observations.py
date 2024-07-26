@@ -67,7 +67,7 @@ def last_processed_action(env: BaseEnv, action_name: str | None = None) -> torch
     else:
         return env.action_manager.get_term(action_name).processed_actions
 
-def docking_state(env: RLTaskEnv, command_name: str, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+def desired_docking_state(env: RLTaskEnv, command_name: str, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """
     The docking state of the robot.
 
@@ -83,14 +83,21 @@ def docking_state(env: RLTaskEnv, command_name: str, asset_cfg: SceneEntityCfg =
     asset: Articulation = env.scene[asset_cfg.name]
     desired_pos = env.command_manager.get_command(command_name)[:, :3]
     current_pos = asset.data.body_pos_w[:, asset_cfg.body_ids].view(-1, 3)
-    des_pos_w = desired_pos + asset.data.root_pos_w
+    des_pos_w = desired_pos + env.scene.env_origins
     # obtain the docking state
-    docking_state = torch.zeros_like(desired_pos[:, 0])
-    in_dock = torch.logical_and(des_pos_w[:, 2] < 0.05, torch.norm(desired_pos - current_pos, dim=1) < 0.05)
-    docking_state[in_dock] = 1.0
+    docking_state = torch.zeros_like(desired_pos[:, 2])
+    docking_state[des_pos_w[:, 2] < 0.05] = 1.0
+    '''
+    # apply forces to each body
+    env_ids = torch.arange(env.num_envs, device=env.device)
+    #self._asset.body_physx_view.set_velocities(torch.zeros((self.num_envs, self._ee_bodies[0], 6), indices=self._ee_bodies[0],device=self.device)) # type: ignore
+    grip_forces = torch.zeros((env.num_envs, 1, 3), device=env.device)
+    grip_forces[:, :, 0] = docking_state.view(-1,1) * 50.0
+    torques = torch.zeros_like(grip_forces) # No torques are applied
+    asset.set_external_force_and_torque(grip_forces, torques=torques, env_ids=env_ids, body_ids=asset_cfg.body_ids) # type: ignore    '''
+    
 
-    return docking_state
-
+    return docking_state.view(-1, 1)
 
 """
 Commands.

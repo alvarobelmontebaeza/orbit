@@ -11,16 +11,14 @@ from omni.isaac.orbit.utils.math import combine_frame_transforms
 if TYPE_CHECKING:
     from omni.isaac.orbit.envs import RLTaskEnv, BaseEnv
 
-def apply_feet_adhesion_force(
-    env: BaseEnv,
+def apply_docking_force(
+    env: RLTaskEnv,
     env_ids: torch.Tensor,
-    adhesion_force: float,
+    dock_force: float,
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
-    sensor_cfg: SceneEntityCfg = SceneEntityCfg("contact_sensor"),
 ):
     # extract the used quantities (to enable type-hinting)
     asset: RigidObject | Articulation = env.scene[asset_cfg.name]
-    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name] #type: ignore
     num_envs = env.scene.num_envs
     # resolve environment ids
     if env_ids is None:
@@ -28,19 +26,14 @@ def apply_feet_adhesion_force(
     # resolve number of bodies
     num_bodies = len(asset_cfg.body_ids) if isinstance(asset_cfg.body_ids, list) else asset.num_bodies
     
-    # Compute the number of feet contacts
-    net_contact_forces = contact_sensor.data.net_forces_w
-    feet_contacts = net_contact_forces[:, sensor_cfg.body_ids, 2] > 1.0
-    contact_indices = torch.nonzero(feet_contacts, as_tuple=False)
+    # Get desired docking state
+    desired_docking_state = env.obs_buf[142:146]
+    # Get current docking positions
+    curr_pos_w = asset.data.body_pos_w[:, asset_cfg.body_ids].view(-1, num_bodies ,3)
+    docking_state = desired_docking_state * (curr_pos_w[:, :, 2] < 0.1)
 
     # create the forces and torques
-    size = (len(env_ids), num_bodies, 3)
-    forces = torch.zeros(size, device=asset.device)
-    torques = torch.zeros(size, device=asset.device)
-    if contact_indices.numel() == 0:
-        asset.set_external_force_and_torque(forces, torques, env_ids=env_ids, body_ids=asset_cfg.body_ids)
-        return
-    else:
-        for env_id, body_id in contact_indices:
-            forces[env_id, body_id, 2] = -adhesion_force
-        asset.set_external_force_and_torque(forces, torques, env_ids=env_ids, body_ids=asset_cfg.body_ids)
+    forces = torch.zeros((num_envs, num_bodies, 3), device=env.device)
+    forces[:, :, 0] = dock_force * docking_state
+    torques = torch.zeros_like(forces) # No torques are applied
+    asset.set_external_force_and_torque(forces, torques=torques, env_ids=env_ids, body_ids=asset_cfg.body_ids) # type: ignore

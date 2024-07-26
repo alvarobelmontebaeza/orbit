@@ -128,7 +128,7 @@ def main():
     num_traj_points = len(traj_msgs)
     # Configuration
     leg_id = ["LH", "RF", "LF", "RH"]
-    traj_time = 30.0 #s
+    traj_time = 50.0 #s
     dt = env.unwrapped.step_dt
     num_points = int(traj_time / dt)
     tracking_point_update_rate = num_points // num_traj_points
@@ -137,8 +137,9 @@ def main():
     print(f"Number of points: {num_points}")
 
     # Sample per-leg initial position and generate trajectories
-    planned_base_traj = torch.zeros((1, num_points, 7))
-    planned_arm_traj = torch.zeros((4, num_points, 3))
+    planned_base_traj = torch.zeros((1, num_points, 7), device=env.unwrapped.device)
+    planned_arm_traj = torch.zeros((4, num_points, 3), device=env.unwrapped.device)
+    planned_docking_state = torch.zeros((num_points, 4), device=env.unwrapped.device)
     real_base_traj = torch.zeros((1, num_points, 7))
     real_arm_traj = torch.zeros((4, num_points, 3))
 
@@ -161,13 +162,12 @@ def main():
             planned_arm_traj[arm, i, 1] = traj_msgs[idx].ee_motion[arm].pos.y - planned_base_traj[0, i, 1]
             planned_arm_traj[arm, i, 2] = traj_msgs[idx].ee_motion[arm].pos.z - planned_base_traj[0, i, 2]
 
-            # Planned contact states
-            # TODO
+        # Planned contact states
+        planned_docking_state[i, :] = torch.tensor(traj_msgs[idx].ee_contact, device=env.unwrapped.device)
 
         # Update index of planned trajectory
         if i % tracking_point_update_rate == 0 and i != 0 and idx < num_traj_points - 1:
             idx += 1
-
 
 
     # Execute trajectory
@@ -181,6 +181,12 @@ def main():
     
     # Do dummy step to update commands
     obs, _, _, _ = env.step(torch.zeros(env.action_space.sample().shape))
+    '''
+    obs[:, 142] = planned_docking_state[steps, 2] # LF
+    obs[:, 143] = planned_docking_state[steps, 0] # LH
+    obs[:, 144] = planned_docking_state[steps, 1] # RF
+    obs[:, 145] = planned_docking_state[steps, 3] # RH
+    '''
 
     # simulate environment
     while simulation_app.is_running():
@@ -190,12 +196,27 @@ def main():
             env.unwrapped.command_manager.get_term("base_pose").pos_command_w = torch.tensor(planned_base_traj[0, steps, :3], device=env.unwrapped.device).view(1, 3)
             env.unwrapped.command_manager.get_term("base_pose").rot_command_w = torch.tensor(planned_base_traj[0, steps, 3:], device=env.unwrapped.device).view(1, 4)
             for i in range(4):
-                env.unwrapped.command_manager.get_term(leg_id[i] + "_pose").pose_command_b[0, 0:3] = torch.tensor(planned_arm_traj[i, steps, :], device=env.unwrapped.device).view(1, 3)    
+                env.unwrapped.command_manager.get_term(leg_id[i] + "_pose").pose_command_b[0, 0:3] = torch.tensor(planned_arm_traj[i, steps, :], device=env.unwrapped.device).view(1, 3)
+            '''
+            # Update docking state
+            obs[:, 142] = planned_docking_state[steps, 2] # LF
+            obs[:, 143] = planned_docking_state[steps, 0] # LH
+            obs[:, 144] = planned_docking_state[steps, 1] # RF
+            obs[:, 145] = planned_docking_state[steps, 3] # RH
+            '''
 
             # agent stepping
             actions = policy(obs)
             # env stepping
             obs, _, _, _ = env.step(actions)
+
+            # Update docking state
+            '''
+            obs[:, 142] = planned_docking_state[steps, 2] # LF
+            obs[:, 143] = planned_docking_state[steps, 0] # LH
+            obs[:, 144] = planned_docking_state[steps, 1] # RF
+            obs[:, 145] = planned_docking_state[steps, 3] # RH
+            
 
             # Get real trajectory
             real_base_traj[0, steps, 0] = obs[0, 0].item() #TODO: Add orientation
@@ -218,6 +239,7 @@ def main():
             real_arm_traj[3, steps, 0] = obs[0, 139].item() # RH
             real_arm_traj[3, steps, 1] = obs[0, 140].item()
             real_arm_traj[3, steps, 2] = obs[0, 141].item()
+            '''
 
             steps += 1
             if steps == num_points:
