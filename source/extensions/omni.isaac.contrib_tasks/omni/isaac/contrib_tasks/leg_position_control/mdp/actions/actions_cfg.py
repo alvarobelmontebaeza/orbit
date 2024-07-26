@@ -43,7 +43,7 @@ class GripForceActionCfg(ActionTermCfg):
     threshold: float | dict[str, float] = 1.0
     """Minimum value of the contact force to be considered a real contact. Defaults to 1.0."""
 
-    sensor_cfg: SceneEntityCfg = SceneEntityCfg()
+    #command_name: str = MISSING
 
 @configclass
 class BodyThrusterActionCfg(ActionTermCfg):
