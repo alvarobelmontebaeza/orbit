@@ -21,7 +21,7 @@ from omni.isaac.orbit.managers import SceneEntityCfg
 
 
 if TYPE_CHECKING:
-    from omni.isaac.orbit.envs import BaseEnv
+    from omni.isaac.orbit.envs import BaseEnv, RLTaskEnv
 
     from . import actions_cfg
 
@@ -55,9 +55,9 @@ class GripForceAction(ActionTerm):
     """The scaling factor applied to the input action."""
     _threshold: torch.Tensor | float
     """The threshold applied to the input action."""
-    _sensor_cfg: SceneEntityCfg
+    _command_name: str
 
-    def __init__(self, cfg: actions_cfg.GripForceActionCfg, env: BaseEnv) -> None:
+    def __init__(self, cfg: actions_cfg.GripForceActionCfg, env: RLTaskEnv) -> None:
         # initialize the action term
         super().__init__(cfg, env)
 
@@ -74,10 +74,6 @@ class GripForceAction(ActionTerm):
         if self._num_bodies == self._asset.num_bodies:
             self._ee_bodies = slice(None)
         
-        # Instantiate contact sensor for the bodies        
-        self._sensor_cfg = cfg.sensor_cfg
-        self._contact_sensor: ContactSensor = env.scene.sensors[self._sensor_cfg.name] # type: ignore
-
         # create tensors for raw and processed actions
         self._raw_actions = torch.zeros(self.num_envs, self.action_dim, device=self.device)
         self._processed_actions = torch.zeros_like(self.raw_actions)
@@ -117,20 +113,25 @@ class GripForceAction(ActionTerm):
     def process_actions(self, actions: torch.Tensor):
         # store the raw actions
         self._raw_actions[:] = actions
-        self._processed_actions[:] = torch.clone(actions)
-        # Check if the contact sensor is activated
-        air_time = self._contact_sensor.data.current_air_time[:, self._ee_bodies]
-        # Check conatcts in Z axis
-        no_contact = air_time > 0.0
-        # Make the action zero if the contact sensor is not activated
-        if torch.any(no_contact):
-            self._processed_actions[no_contact] = 0.0
+        self._processed_actions[:] = torch.zeros_like(actions)
+        # Filter dock/no-dock
+        desired_dock = self._env.observation_manager.obs_buffer["policy"][:, 142:146]
+        current_pos = self._asset.data.body_pos_w[:, self._ee_bodies].view(-1, self._num_bodies ,3)
+        # obtain the docking state
+        docking_state = torch.zeros_like(current_pos[:, :, 2])
+        docking_state = torch.where(torch.abs(current_pos[:, :, 2]) < 0.05, 1.0, 0.0)
+        docking_state *= desired_dock
         
         # Scale the action by the max force
-        self._processed_actions *= self._max_force
+        self._processed_actions = self._max_force * docking_state
+
 
         # Clip the action to not exceed the max force
         self._processed_actions = torch.clamp(self._processed_actions, min=0.0, max=self._max_force)
+
+        ###### OVERWRITE FORCE COMPUTED AND BASE EVERYTHING ON DOCK OBSERVATION
+        self._processed_actions *= 0.0
+
          
 
     def apply_actions(self):
