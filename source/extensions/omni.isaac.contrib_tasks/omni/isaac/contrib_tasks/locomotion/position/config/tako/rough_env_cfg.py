@@ -23,8 +23,8 @@ class TakoRoughEnvCfg(LocomotionPositionRoughEnvCfg):
         self.scene.robot = TAKO_CFG.replace(prim_path="{ENV_REGEX_NS}/tako")
 
         feet_init_pos = {
-            "LF": [0.55, 0.9, -0.5],
-            "LH": [-0.3, 0.9, -0.5],
+            "LF": [0.55, 0.93, -0.5],
+            "LH": [-0.3, 0.93, -0.5],
             "RF": [0.55, -0.73, -0.5],
             "RH": [-0.3, -0.73, -0.5],
         }
