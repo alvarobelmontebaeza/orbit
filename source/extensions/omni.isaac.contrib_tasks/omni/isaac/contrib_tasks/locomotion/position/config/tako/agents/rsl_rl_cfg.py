@@ -16,7 +16,7 @@ from omni.isaac.orbit_tasks.utils.wrappers.rsl_rl import (
 class TakoRoughPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 24
     max_iterations = 20000
-    save_interval = 500
+    save_interval = 100
     experiment_name = "tako_pos_rough"
     resume = False
     empirical_normalization = True
