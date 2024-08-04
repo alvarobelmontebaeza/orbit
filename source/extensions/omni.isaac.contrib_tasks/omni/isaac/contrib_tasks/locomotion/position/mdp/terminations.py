@@ -53,7 +53,7 @@ def unhealthy_base_position(env: RLTaskEnv, sensor_cfg: SceneEntityCfg, asset_cf
         torch.max(torch.norm(net_contact_forces[:, :, sensor_cfg.body_ids], dim=-1), dim=1)[0] > 5.0, dim=1
     )
     # check if the base orientation is unhealthy
-    unhealthy_orient = torch.abs(asset.data.projected_gravity_b[:, 2]) < 0.3
+    unhealthy_orient = torch.abs(asset.data.projected_gravity_b[:, 2]) < 0.2
     terminate = base_in_contact + unhealthy_orient
     return terminate 
 
