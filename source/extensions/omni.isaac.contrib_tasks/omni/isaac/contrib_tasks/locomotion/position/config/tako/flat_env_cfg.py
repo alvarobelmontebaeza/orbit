@@ -30,7 +30,8 @@ class TakoFlatEnvCfg_PLAY(TakoFlatEnvCfg):
     def __post_init__(self) -> None:
         # post init of parent
         super().__post_init__()
-
+        
+        self.terminations.time_out = None
         # make a smaller scene for play
         self.scene.num_envs = 50
         self.scene.env_spacing = 2.5
