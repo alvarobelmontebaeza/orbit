@@ -152,7 +152,7 @@ def position_tracking_reward(env: RLTaskEnv, command_name: str, asset_cfg: Scene
     curr_pos_w = asset.data.root_pos_w
     return (1.0 - 0.5 * torch.norm(curr_pos_w[:] - des_pos_w[:], dim=1)) #* (env.command_manager.get_term(command_name).time_left < 1.0)
 
-def base_pose_tracking_reward(env: RLTaskEnv, command_name: str, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"), sigma: float = 1200.0) -> torch.Tensor:
+def base_pose_tracking_reward(env: RLTaskEnv, command_name: str, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"), sigma: float = 2.0) -> torch.Tensor:
     # extract the asset (to enable type hinting)
     asset: Articulation = env.scene[asset_cfg.name]
     command = env.command_manager.get_command(command_name)
@@ -160,15 +160,18 @@ def base_pose_tracking_reward(env: RLTaskEnv, command_name: str, asset_cfg: Scen
     des_pos_b = command[:, :3]
     des_orient_b = command[:, 3:7]
     des_pos_w = des_pos_b + torch.tensor(asset.cfg.init_state.pos, device=env.device) + env.scene.env_origins #combine_frame_transforms(asset.data.root_state_w[:, :3], asset.data.root_state_w[:, 3:7], des_pos_b) #des_pos_b + env.scene.env_origins
+    des_orient_w = quat_mul(asset.data.root_state_w[:, 3:7], des_orient_b)
     curr_pos_w = asset.data.root_pos_w
     curr_orient_w = asset.data.root_quat_w
 
-    pos_error = torch.norm(curr_pos_w - des_pos_w, dim=1)
-    orient_error = quat_error_magnitude(curr_orient_w, des_orient_b)
-    pos_tracking_rew = -torch.log(1.e-5 + pos_error**2) #torch.exp(-sigma * (torch.norm(pos_error, dim=1)**2))
-    rot_tracking_rew = -torch.log(1.e-5 + orient_error**2) #torch.exp(-90.0 * (orient_error**2))
+    pos_error = torch.norm(des_pos_b, dim=1) # Since command is UniformPose3dCommand, the desired position in body frame is the position error
+    orient_error = quat_error_magnitude(curr_orient_w, des_orient_w)
+    pos_tracking_rew = -torch.log(1.e-5 + pos_error**2) 
+    #pos_tracking_rew = torch.exp(-(1.0/sigma) * (pos_error**2))
+    rot_tracking_rew = -torch.log(1.e-5 + orient_error**2) 
+    #rot_tracking_rew = torch.exp(-(1.0/sigma) * (orient_error**2))
     
-    return pos_tracking_rew #+ rot_tracking_rew
+    return pos_tracking_rew + rot_tracking_rew
 
 def position_command_error_ln(env: RLTaskEnv, epsilon: float, command_name: str,asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """Penalize tracking of the position error using L2-norm.
@@ -186,6 +189,25 @@ def position_command_error_ln(env: RLTaskEnv, epsilon: float, command_name: str,
     curr_pos_w = asset.data.body_state_w[:, asset_cfg.body_ids[0], :3]  # type: ignore
     return -torch.log(epsilon + torch.norm(curr_pos_w - des_pos_w, dim=1)**2)
 
+def position_command_error_exp(env: RLTaskEnv, sigma: float, command_name: str, asset_cfg: SceneEntityCfg) -> torch.Tensor:
+    """Penalize tracking of the position error using L2-norm and exponential .
+
+    The function computes the position error between the desired position (from the command) and the
+    current position of the asset's body (in world frame). The position error is computed as the L2-norm
+    of the difference between the desired and current positions.
+    """
+    # extract the asset (to enable type hinting)
+    asset: RigidObject = env.scene[asset_cfg.name]
+    command = env.command_manager.get_command(command_name)
+    # obtain the desired and current positions
+    des_pos_b = command[:, :3]
+    des_pos_w, _ = combine_frame_transforms(asset.data.root_state_w[:, :3], asset.data.root_state_w[:, 3:7], des_pos_b)
+    curr_pos_w = asset.data.body_state_w[:, asset_cfg.body_ids[0], :3]  # type: ignore
+    # set sigma
+    factor = 1.0 / sigma
+    
+    return torch.exp(-factor * torch.norm(curr_pos_w - des_pos_w, dim=1))
+
 def orientation_command_error_ln(env: RLTaskEnv, epsilon: float, command_name: str, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """Penalize tracking orientation error using shortest path.
 
@@ -201,6 +223,25 @@ def orientation_command_error_ln(env: RLTaskEnv, epsilon: float, command_name: s
     des_quat_w = quat_mul(asset.data.root_state_w[:, 3:7], des_quat_b)
     curr_quat_w = asset.data.body_state_w[:, asset_cfg.body_ids[0], 3:7]  # type: ignore
     return -torch.log(epsilon + quat_error_magnitude(curr_quat_w, des_quat_w))
+
+def orientation_command_error_exp(env: RLTaskEnv, sigma: float, command_name: str, asset_cfg: SceneEntityCfg) -> torch.Tensor:
+    """Penalize tracking orientation error using shortest path.
+
+    The function computes the orientation error between the desired orientation (from the command) and the
+    current orientation of the asset's body (in world frame). The orientation error is computed as the shortest
+    path between the desired and current orientations.
+    """
+    # extract the asset (to enable type hinting)
+    asset: RigidObject = env.scene[asset_cfg.name]
+    command = env.command_manager.get_command(command_name)
+    # obtain the desired and current orientations
+    des_quat_b = command[:, 3:7]
+    des_quat_w = quat_mul(asset.data.root_state_w[:, 3:7], des_quat_b)
+    curr_quat_w = asset.data.body_state_w[:, asset_cfg.body_ids[0], 3:7]  # type: ignore
+    # set sigma
+    factor = 1.0 / sigma
+
+    return torch.exp(-factor * quat_error_magnitude(curr_quat_w, des_quat_w))
 
 
 def heading_tracking_reward(env: RLTaskEnv, command_name: str, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
