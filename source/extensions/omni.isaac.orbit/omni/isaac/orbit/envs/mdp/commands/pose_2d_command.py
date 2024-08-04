@@ -16,7 +16,7 @@ from omni.isaac.orbit.managers import CommandTerm
 from omni.isaac.orbit.markers import VisualizationMarkers
 from omni.isaac.orbit.markers.config import GREEN_ARROW_X_MARKER_CFG, FRAME_MARKER_CFG
 from omni.isaac.orbit.terrains import TerrainImporter
-from omni.isaac.orbit.utils.math import quat_from_euler_xyz, quat_rotate_inverse, wrap_to_pi, yaw_quat
+from omni.isaac.orbit.utils.math import quat_from_euler_xyz, quat_rotate_inverse, wrap_to_pi, yaw_quat, quat_error_magnitude
 
 if TYPE_CHECKING:
     from omni.isaac.orbit.envs import BaseEnv
@@ -236,7 +236,7 @@ class UniformPose3dCommand(CommandTerm):
     def _update_metrics(self):
         # logs data
         self.metrics["error_pos_3d"] = torch.norm(self.pos_command_w[:, :3] - self.robot.data.root_pos_w[:, :3], dim=1)
-        self.metrics["error_rot_3d"] = torch.abs(wrap_to_pi(self.rot_command_w[:, 1:] - self.robot.data.root_quat_w[:, 1:]))
+        self.metrics["error_rot_3d"] = quat_error_magnitude(self.rot_command_w[:], self.robot.data.root_quat_w[:])
 
     def _set_debug_vis_impl(self, debug_vis: bool):
         # create markers if necessary for the first tome
