@@ -53,17 +53,17 @@ TAKO_CFG = ArticulationCfg(
     actuators={
         "legs": ImplicitActuatorCfg(
             joint_names_expr=[".*shoulder_pan_joint", ".*shoulder_lift_joint", ".*elbow_joint"],
-            velocity_limit=0.5,#math.pi * 0.5,
+            velocity_limit=0.5,
             effort_limit=50.0,
             stiffness=120.0,
-            damping=20.0,
+            damping=25.0,
         ),
         "feet": ImplicitActuatorCfg(
             joint_names_expr=[".*wrist_1_joint", ".*wrist_2_joint", ".*wrist_3_joint"],
-            velocity_limit=0.5,#math.pi * 0.5,
+            velocity_limit=0.5,
             effort_limit=20.0,
             stiffness=120.0,
-            damping=20.0,
+            damping=25.0,
         )
     },
     soft_joint_pos_limit_factor=0.95, # Limit factor for joint position limits
