@@ -105,7 +105,7 @@ class CommandsCfg:
         resampling_time_range=(20.0, 20.0),
         debug_vis=True,
         ranges=mdp.UniformPose3dCommandCfg.Ranges(
-            pos_x=(0.2, 0.5),
+            pos_x=(0.0, 0.25),
             pos_y=(0.0, 0.0),
             pos_z=MISSING, # Depends on init position
             roll=(0.0, 0.0),
@@ -176,6 +176,13 @@ class ActionsCfg:
     """Action specifications for the MDP."""
     joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=[".*"], scale=0.5, use_default_offset=True)
     #joint_pos = mdp.RelativeJointPositionActionCfg(asset_name="robot", joint_names=[".*"], scale=0.5)
+
+    body_thruster = actions_cfg.BodyThrusterActionCfg(
+        asset_name="robot",
+        max_push_force=250.0,
+        threshold=1.0,
+    )  
+    
     ''' 
     docking = actions_cfg.GripForceActionCfg(
         asset_name="robot",
@@ -212,14 +219,6 @@ class ActionsCfg:
         command_name = "RH_pose",
     )
     '''
-    
-    body_thruster = actions_cfg.BodyThrusterActionCfg(
-        asset_name="robot",
-        max_push_force=50.0,
-        threshold=1.0,
-    )  
-
-
 
 @configclass
 class ObservationsCfg:
@@ -309,9 +308,9 @@ class EventCfg:
     )    
     
 
-weight_pos_track = 15.0
+weight_pos_track = 17.5
 epsilon_pos_track = 1e-5
-weight_orient_track = 15.0
+weight_orient_track = 17.5
 epsilon_orient_track = 1e-5
 
 @configclass
@@ -423,9 +422,9 @@ class RewardsCfg:
     # -- penalties
     #dof_vel_l2 = RewTerm(func=mdp.joint_vel_l2, weight=0.0)
     #dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=0.0)
-    dof_power = RewTerm(func=mdp.joint_power_l2, weight=-5.0e-3)
-    dof_acc = RewTerm(func=mdp.joint_acc_l2, weight=-5.0e-6)
-    #default_dof_pos = RewTerm(func=mdp.joint_deviation_l1, weight=-5.0)
+    dof_power = RewTerm(func=mdp.joint_power_l2, weight=-2.5e-2)
+    dof_acc = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-6)
+    #default_dof_pos = RewTerm(func=mdp.joint_deviation_l1, weight=-0.01)
     #dof_vel_limits = RewTerm(func=mdp.joint_vel_limits, weight=-1.0, params={"soft_ratio": 0.95})
     #dof_torque_limits = RewTerm(func=mdp.applied_torque_limits, weight=-0.2)
     #body_lin_acc = RewTerm(func=mdp.body_lin_acc_l2, weight=-1.0e-2, params={"asset_cfg": SceneEntityCfg("robot", body_names=[".*body"])})
@@ -433,7 +432,7 @@ class RewardsCfg:
     #feet_lin_acc = RewTerm(func=mdp.body_lin_acc_l2, weight=-2.0, params={"asset_cfg": SceneEntityCfg("robot", body_names=[".*dock"])})
     #action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.0)
     action_term_rate_l2 = RewTerm(func=mdp.action_term_rate_l2, weight=-0.01, params={"term_name": "joint_pos"})
-    thruster_usage = RewTerm(func=mdp.action_term_l2, weight=-0.05, params={"action_name": "body_thruster"})
+    #thruster_usage = RewTerm(func=mdp.action_term_l2, weight=-0.01, params={"action_name": "body_thruster"})
     #feet_contacts = RewTerm(func=mdp.feet_contacts, weight=1.0, params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*dock"])})
     #feet_xy_vel_in_contact = RewTerm(func=mdp.feet_xy_vel_in_contact, weight=-5.0, params={"asset_cfg": SceneEntityCfg("robot", body_names=[".*dock"]), "sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*dock"])})
     #stand_at_target = RewTerm(func=mdp.stand_at_target, weight=-0., params={"command_name": "base_pose"})
@@ -474,14 +473,6 @@ class TerminationsCfg:
     
 
 
-
-@configclass
-class CurriculumCfg:
-    """Curriculum terms for the MDP."""
-
-    terrain_levels = CurrTerm(func=mdp.terrain_levels_vel)
-
-
 ##
 # Environment configuration
 ##
@@ -501,18 +492,16 @@ class LocomotionPositionRoughEnvCfg(RLTaskEnvCfg):
     rewards: RewardsCfg = RewardsCfg()
     terminations: TerminationsCfg = TerminationsCfg()
     events: EventCfg = EventCfg()
-    curriculum: CurriculumCfg = CurriculumCfg()
 
     def __post_init__(self):
         """Post initialization."""
         # general settings
         self.decimation = 4
-        self.episode_length_s = 20.0
-        self.commands.base_pose.resampling_time_range = (self.episode_length_s, self.episode_length_s)
-        self.commands.LF_pose.resampling_time_range = (self.episode_length_s, self.episode_length_s)
-        self.commands.LH_pose.resampling_time_range = (self.episode_length_s, self.episode_length_s)
-        self.commands.RF_pose.resampling_time_range = (self.episode_length_s, self.episode_length_s)
-        self.commands.RH_pose.resampling_time_range = (self.episode_length_s, self.episode_length_s)
+        self.episode_length_s = 15.0
+        self.commands.LF_pose.resampling_time_range = (self.episode_length_s * 0.5, self.episode_length_s * 0.5)
+        self.commands.LH_pose.resampling_time_range = (self.episode_length_s * 0.5, self.episode_length_s * 0.5)
+        self.commands.RF_pose.resampling_time_range = (self.episode_length_s * 0.5, self.episode_length_s * 0.5)
+        self.commands.RH_pose.resampling_time_range = (self.episode_length_s * 0.5, self.episode_length_s * 0.5)
         # simulation settings
         self.sim.dt = 0.005
         self.sim.gravity = (0.0, 0.0, 0.0)
