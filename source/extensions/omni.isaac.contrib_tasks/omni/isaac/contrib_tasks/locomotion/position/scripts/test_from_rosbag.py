@@ -160,7 +160,7 @@ def main():
         for arm in range(4):
             planned_arm_traj[arm, i, 0] = traj_msgs[idx].ee_motion[arm].pos.x - planned_base_traj[0, i, 0]
             planned_arm_traj[arm, i, 1] = traj_msgs[idx].ee_motion[arm].pos.y - planned_base_traj[0, i, 1]
-            planned_arm_traj[arm, i, 2] = traj_msgs[idx].ee_motion[arm].pos.z - planned_base_traj[0, i, 2]
+            planned_arm_traj[arm, i, 2] = traj_msgs[idx].ee_motion[arm].pos.z - planned_base_traj[0, i, 2] + 0.03 # plan is done wrt the docking, but reference is given to the wrist
 
         # Planned contact states
         planned_docking_state[i, :] = torch.tensor(traj_msgs[idx].ee_contact, device=env.unwrapped.device)

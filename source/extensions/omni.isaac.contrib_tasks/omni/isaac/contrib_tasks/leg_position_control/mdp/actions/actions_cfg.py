@@ -63,7 +63,7 @@ class BodyThrusterActionCfg(ActionTermCfg):
     max_push_force: float | dict[str, float] = 5.0
     """Maximum force that will be applied to the bodies. Defaults to 5.0."""
 
-    threshold: float | dict[str, float] = 1.0
+    epsilon: float | dict[str, float] = 1e-5
     """Minimum value of the contact force to be considered a real contact. Defaults to 1.0."""
 
 

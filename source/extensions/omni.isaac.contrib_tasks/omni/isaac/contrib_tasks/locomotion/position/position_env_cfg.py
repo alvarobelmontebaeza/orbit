@@ -179,8 +179,8 @@ class ActionsCfg:
 
     body_thruster = actions_cfg.BodyThrusterActionCfg(
         asset_name="robot",
-        max_push_force=250.0,
-        threshold=1.0,
+        max_push_force=100.0,
+        epsilon=1.0e-5,
     )  
     
     ''' 
@@ -237,9 +237,9 @@ class ObservationsCfg:
         target_pose = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_pose"})  # 16 - 22
         joint_pos = ObsTerm(func=mdp.joint_pos_rel)  # 23 - 46
         joint_vel = ObsTerm(func=mdp.joint_vel_rel)  # 47 - 70
-        actions = ObsTerm(func=mdp.last_action, params={"action_name": "joint_pos"})  # 71 - 94
+        actions = ObsTerm(func=mdp.last_action)  # 71 - 94
         #docking_action = ObsTerm(func=mdp.last_processed_action, params={"action_name": "docking"})
-        body_thruster = ObsTerm(func=mdp.last_processed_action, params={"action_name": "body_thruster"})  # 95 - 97
+        #body_thruster = ObsTerm(func=mdp.last_processed_action, params={"action_name": "body_thruster"})  # 95 - 97
         LF_foot_pos_des = ObsTerm(func=mdp.generated_commands, params={"command_name": "LF_pose"})  # 98 - 104
         LH_foot_pos_des = ObsTerm(func=mdp.generated_commands, params={"command_name": "LH_pose"})  # 105 - 111
         RF_foot_pos_des = ObsTerm(func=mdp.generated_commands, params={"command_name": "RF_pose"})  # 112 - 118
@@ -308,9 +308,9 @@ class EventCfg:
     )    
     
 
-weight_pos_track = 17.5
+weight_pos_track = 15.0
 epsilon_pos_track = 1e-5
-weight_orient_track = 17.5
+weight_orient_track = 15.0
 epsilon_orient_track = 1e-5
 
 @configclass
@@ -320,7 +320,7 @@ class RewardsCfg:
     # -- BODY POSE TRACKING
     body_pose_tracking = RewTerm(
         func=mdp.base_pose_tracking_reward, 
-        weight=17.5, 
+        weight=20.0, 
         params={"command_name": "base_pose", "asset_cfg": SceneEntityCfg("robot", body_names=[".*body"]), "sigma": 0.25}
         )
     '''
@@ -422,8 +422,8 @@ class RewardsCfg:
     # -- penalties
     #dof_vel_l2 = RewTerm(func=mdp.joint_vel_l2, weight=0.0)
     #dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=0.0)
-    dof_power = RewTerm(func=mdp.joint_power_l2, weight=-2.5e-2)
-    dof_acc = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-6)
+    dof_power = RewTerm(func=mdp.joint_power_l2, weight=-7.5e-2)
+    dof_acc = RewTerm(func=mdp.joint_acc_l2, weight=-5.0e-6)
     #default_dof_pos = RewTerm(func=mdp.joint_deviation_l1, weight=-0.01)
     #dof_vel_limits = RewTerm(func=mdp.joint_vel_limits, weight=-1.0, params={"soft_ratio": 0.95})
     #dof_torque_limits = RewTerm(func=mdp.applied_torque_limits, weight=-0.2)
@@ -431,8 +431,8 @@ class RewardsCfg:
     body_ang_acc = RewTerm(func=mdp.body_ang_acc_l2, weight=-1.0e-2, params={"asset_cfg": SceneEntityCfg("robot", body_names=[".*body"])})
     #feet_lin_acc = RewTerm(func=mdp.body_lin_acc_l2, weight=-2.0, params={"asset_cfg": SceneEntityCfg("robot", body_names=[".*dock"])})
     #action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.0)
-    action_term_rate_l2 = RewTerm(func=mdp.action_term_rate_l2, weight=-0.01, params={"term_name": "joint_pos"})
-    #thruster_usage = RewTerm(func=mdp.action_term_l2, weight=-0.01, params={"action_name": "body_thruster"})
+    action_term_rate_l2 = RewTerm(func=mdp.action_term_rate_l2, weight=-0.05, params={"term_name": "joint_pos"})
+    #thruster_usage = RewTerm(func=mdp.action_term_l2, weight=-0.001, params={"action_name": "body_thruster"})
     #feet_contacts = RewTerm(func=mdp.feet_contacts, weight=1.0, params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*dock"])})
     #feet_xy_vel_in_contact = RewTerm(func=mdp.feet_xy_vel_in_contact, weight=-5.0, params={"asset_cfg": SceneEntityCfg("robot", body_names=[".*dock"]), "sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*dock"])})
     #stand_at_target = RewTerm(func=mdp.stand_at_target, weight=-0., params={"command_name": "base_pose"})
