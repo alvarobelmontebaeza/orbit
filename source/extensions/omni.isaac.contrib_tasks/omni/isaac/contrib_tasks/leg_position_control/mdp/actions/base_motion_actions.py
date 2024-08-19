@@ -49,7 +49,7 @@ class BodyThrusterAction(ActionTerm):
     """The articulation asset on which the action term is applied."""
     _max_push_force: torch.Tensor | float
     """The scaling factor applied to the input action."""
-    _threshold: torch.Tensor | float
+    _epsilon: torch.Tensor | float
     """The threshold applied to the input action."""
 
     def __init__(self, cfg: actions_cfg.BodyThrusterActionCfg, env: BaseEnv) -> None:
@@ -69,10 +69,10 @@ class BodyThrusterAction(ActionTerm):
         else:
             raise ValueError(f"Unsupported max_force type: {type(cfg.max_push_force)}. Supported types are float")
         # parse threshold
-        if isinstance(cfg.threshold, (float, int)):
-            self._threshold = float(cfg.threshold)
+        if isinstance(cfg.epsilon, (float, int)):
+            self._epsilon = float(cfg.epsilon)
         else:
-            raise ValueError(f"Unsupported threshold type: {type(cfg.threshold)}. Supported types are float")
+            raise ValueError(f"Unsupported threshold type: {type(cfg.epsilon)}. Supported types are float")
         
 
     """
@@ -100,7 +100,7 @@ class BodyThrusterAction(ActionTerm):
         self._raw_actions[:] = actions        
         # Clip the actions to the max force
         self._processed_actions = torch.tanh(self._raw_actions) * self._max_push_force
-        self._processed_actions = torch.clip(self._processed_actions, min=-self._max_push_force, max=self._max_push_force) + 1e-5
+        self._processed_actions = torch.clip(self._processed_actions, min=-self._max_push_force, max=self._max_push_force) + self._epsilon
 
     def apply_actions(self):
         # apply forces to each body
@@ -110,6 +110,7 @@ class BodyThrusterAction(ActionTerm):
         torques = torch.zeros_like(forces) # No torques are applied
         # Find bodies to apply the force
         body_ids, body_names = self._asset.find_bodies(".*body")
+
 
         self._asset.set_external_force_and_torque(forces=forces, torques=torques, env_ids=env_ids, body_ids=body_ids) # type: ignore
 
@@ -141,7 +142,7 @@ class BodyThrusterAction(ActionTerm):
     """The articulation asset on which the action term is applied."""
     _max_push_force: torch.Tensor | float
     """The scaling factor applied to the input action."""
-    _threshold: torch.Tensor | float
+    _epsilon: torch.Tensor | float
     """The threshold applied to the input action."""
 
     def __init__(self, cfg: actions_cfg.BodyThrusterActionCfg, env: BaseEnv) -> None:
@@ -162,7 +163,7 @@ class BodyThrusterAction(ActionTerm):
             raise ValueError(f"Unsupported max_force type: {type(cfg.max_push_force)}. Supported types are float")
         # parse threshold
         if isinstance(cfg.threshold, (float, int)):
-            self._threshold = float(cfg.threshold)
+            self._epsilon = float(cfg.threshold)
         else:
             raise ValueError(f"Unsupported threshold type: {type(cfg.threshold)}. Supported types are float")
         
