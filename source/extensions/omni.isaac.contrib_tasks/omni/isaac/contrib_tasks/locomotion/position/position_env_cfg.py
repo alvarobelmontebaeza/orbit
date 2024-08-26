@@ -308,9 +308,9 @@ class EventCfg:
     )    
     
 
-weight_pos_track = 15.0
+weight_pos_track = 17.5
 epsilon_pos_track = 1e-5
-weight_orient_track = 15.0
+weight_orient_track = 17.5
 epsilon_orient_track = 1e-5
 
 @configclass
@@ -320,7 +320,7 @@ class RewardsCfg:
     # -- BODY POSE TRACKING
     body_pose_tracking = RewTerm(
         func=mdp.base_pose_tracking_reward, 
-        weight=20.0, 
+        weight=18.0, 
         params={"command_name": "base_pose", "asset_cfg": SceneEntityCfg("robot", body_names=[".*body"]), "sigma": 0.25}
         )
     '''
@@ -422,7 +422,7 @@ class RewardsCfg:
     # -- penalties
     #dof_vel_l2 = RewTerm(func=mdp.joint_vel_l2, weight=0.0)
     #dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=0.0)
-    dof_power = RewTerm(func=mdp.joint_power_l2, weight=-7.5e-2)
+    dof_power = RewTerm(func=mdp.joint_power_l2, weight=-0.25)
     dof_acc = RewTerm(func=mdp.joint_acc_l2, weight=-5.0e-6)
     #default_dof_pos = RewTerm(func=mdp.joint_deviation_l1, weight=-0.01)
     #dof_vel_limits = RewTerm(func=mdp.joint_vel_limits, weight=-1.0, params={"soft_ratio": 0.95})

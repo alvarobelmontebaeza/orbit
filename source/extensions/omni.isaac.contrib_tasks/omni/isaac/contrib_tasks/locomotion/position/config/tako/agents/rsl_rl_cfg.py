@@ -48,5 +48,5 @@ class TakoFlatPPORunnerCfg(TakoRoughPPORunnerCfg):
     def __post_init__(self):
         super().__post_init__()
 
-        self.max_iterations = 25000
+        self.max_iterations = 50000
         self.experiment_name = "tako_pos_flat"
