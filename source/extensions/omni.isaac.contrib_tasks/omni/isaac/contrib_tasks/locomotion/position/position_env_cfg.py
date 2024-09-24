@@ -102,10 +102,10 @@ class CommandsCfg:
     base_pose = mdp.UniformPose3dCommandCfg(
         asset_name="robot",
         body_name=".*body",
-        resampling_time_range=(20.0, 20.0),
+        resampling_time_range=(15.0, 15.0),
         debug_vis=True,
         ranges=mdp.UniformPose3dCommandCfg.Ranges(
-            pos_x=(0.0, 0.25),
+            pos_x=(0.0, 0.0),
             pos_y=(0.0, 0.0),
             pos_z=MISSING, # Depends on init position
             roll=(0.0, 0.0),
@@ -323,13 +323,6 @@ class RewardsCfg:
         weight=17.5, 
         params={"command_name": "base_pose", "asset_cfg": SceneEntityCfg("robot", body_names=[".*body"]), "sigma": 0.25}
         )
-    '''
-    body_orient_tracking = RewTerm(
-        func=mdp.orientation_command_error_ln,
-        weight=5.0,
-        params={"command_name": "base_pose", "epsilon": 1e-5, "asset_cfg": SceneEntityCfg("robot", body_names=[".*body"])}
-        )
-        '''
     # -- END-EFFECTOR TRACKING
     LF_pos_tracking = RewTerm(
         func=mdp.position_command_error_ln,
@@ -351,28 +344,6 @@ class RewardsCfg:
         weight=weight_pos_track,
         params={"epsilon": epsilon_pos_track, "asset_cfg": SceneEntityCfg("robot", body_names=".*RH_dock"), "command_name": "RH_pose"},
     )
-    '''
-    LF_pos_tracking = RewTerm(
-        func=mdp.position_command_error_exp,
-        weight=weight_pos_track,
-        params={"sigma": 0.25, "asset_cfg": SceneEntityCfg("robot", body_names=".*LF_dock"), "command_name": "LF_pose"},
-    )
-    LH_pos_tracking = RewTerm(
-        func=mdp.position_command_error_exp,
-        weight=weight_pos_track,
-        params={"sigma": 0.25, "asset_cfg": SceneEntityCfg("robot", body_names=".*LH_dock"), "command_name": "LH_pose"},
-    ) 
-    RF_pos_tracking = RewTerm(
-        func=mdp.position_command_error_exp,
-        weight=weight_pos_track,
-        params={"sigma": 0.25, "asset_cfg": SceneEntityCfg("robot", body_names=".*RF_dock"), "command_name": "RF_pose"},
-    ) 
-    RH_pos_tracking = RewTerm(
-        func=mdp.position_command_error_exp,
-        weight=weight_pos_track,
-        params={"sigma": 0.25, "asset_cfg": SceneEntityCfg("robot", body_names=".*RH_dock"), "command_name": "RH_pose"},
-    )
-    '''  
 
     # ORIENTATION TRACKING
     LF_orient_tracking = RewTerm(
@@ -395,29 +366,6 @@ class RewardsCfg:
         weight=weight_orient_track,
         params={"epsilon": epsilon_orient_track, "asset_cfg": SceneEntityCfg("robot", body_names=".*RH_dock"), "command_name": "RH_pose"},
     )
-    '''
-    # ORIENTATION TRACKING
-    LF_orient_tracking = RewTerm(
-        func=mdp.orientation_command_error_exp,
-        weight=weight_orient_track,
-        params={"sigma": 0.25, "asset_cfg": SceneEntityCfg("robot", body_names=".*LF_dock"), "command_name": "LF_pose"},
-    )
-    LH_orient_tracking = RewTerm(
-        func=mdp.orientation_command_error_exp,
-        weight=weight_orient_track,
-        params={"sigma": 0.25,"asset_cfg": SceneEntityCfg("robot", body_names=".*LH_dock"), "command_name": "LH_pose"},
-    )
-    RF_orient_tracking = RewTerm(
-        func=mdp.orientation_command_error_exp,
-        weight=weight_orient_track,
-        params={"sigma": 0.25,"asset_cfg": SceneEntityCfg("robot", body_names=".*RF_dock"), "command_name": "RF_pose"},
-    )
-    RH_orient_tracking = RewTerm(
-        func=mdp.orientation_command_error_exp,
-        weight=weight_orient_track,
-        params={"sigma": 0.25, "asset_cfg": SceneEntityCfg("robot", body_names=".*RH_dock"), "command_name": "RH_pose"},
-    )
-    '''
 
     # -- penalties
     #dof_vel_l2 = RewTerm(func=mdp.joint_vel_l2, weight=0.0)
@@ -470,6 +418,12 @@ class TerminationsCfg:
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*dock"]), "threshold": 1},
     )
     '''
+
+@configclass
+class CurriculumCfg:
+    """Curriculum configuration for the MDP."""
+    base_pose_command_range = CurrTerm(mdp.base_position_command_range)
+
     
 
 
@@ -492,6 +446,7 @@ class LocomotionPositionRoughEnvCfg(RLTaskEnvCfg):
     rewards: RewardsCfg = RewardsCfg()
     terminations: TerminationsCfg = TerminationsCfg()
     events: EventCfg = EventCfg()
+    curriculum: CurriculumCfg = CurriculumCfg()
 
     def __post_init__(self):
         """Post initialization."""
