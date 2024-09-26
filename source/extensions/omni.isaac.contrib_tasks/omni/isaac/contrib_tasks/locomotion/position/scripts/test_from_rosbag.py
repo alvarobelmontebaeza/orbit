@@ -128,12 +128,12 @@ def main():
     num_traj_points = len(traj_msgs)
     # Configuration
     leg_id = ["LH", "RF", "LF", "RH"]
-    traj_time = 50.0 #s
+    traj_time = num_traj_points // 100.0 #s
     dt = env.unwrapped.step_dt
     num_points = int(traj_time / dt)
-    tracking_point_update_rate = num_points // num_traj_points
-    extra_points = num_points % num_traj_points
-    print(f"Number of trajectory points: {tracking_point_update_rate}")
+    tracking_point_update_rate = num_traj_points // num_points
+    extra_points = num_traj_points % num_points
+    print(f"Number of trajectory points: {num_traj_points}")
     print(f"Number of points: {num_points}")
 
     # Sample per-leg initial position and generate trajectories
@@ -160,14 +160,15 @@ def main():
         for arm in range(4):
             planned_arm_traj[arm, i, 0] = traj_msgs[idx].ee_motion[arm].pos.x - planned_base_traj[0, i, 0]
             planned_arm_traj[arm, i, 1] = traj_msgs[idx].ee_motion[arm].pos.y - planned_base_traj[0, i, 1]
-            planned_arm_traj[arm, i, 2] = traj_msgs[idx].ee_motion[arm].pos.z - planned_base_traj[0, i, 2]
+            planned_arm_traj[arm, i, 2] = traj_msgs[idx].ee_motion[arm].pos.z - planned_base_traj[0, i, 2] - 0.06 # Offset to account for the end effector height
 
         # Planned contact states
         planned_docking_state[i, :] = torch.tensor(traj_msgs[idx].ee_contact, device=env.unwrapped.device)
 
         # Update index of planned trajectory
-        if i % tracking_point_update_rate == 0 and i != 0 and idx < num_traj_points - 1:
-            idx += 1
+        idx += tracking_point_update_rate
+        if idx >= num_traj_points:
+            idx = num_traj_points - 1
 
 
     # Execute trajectory
@@ -189,9 +190,13 @@ def main():
     '''
 
     # simulate environment
+    total_time = 0
     while simulation_app.is_running():
         # run everything in inference mode
         with torch.inference_mode():
+            total_time += dt
+            total_time = round(total_time, 2)
+            print(f"Total time: {total_time}")
             # Override commands with planned trajectory
             env.unwrapped.command_manager.get_term("base_pose").pos_command_w = torch.tensor(planned_base_traj[0, steps, :3], device=env.unwrapped.device).view(1, 3)
             env.unwrapped.command_manager.get_term("base_pose").rot_command_w = torch.tensor(planned_base_traj[0, steps, 3:], device=env.unwrapped.device).view(1, 4)
@@ -205,6 +210,12 @@ def main():
             obs[:, 145] = planned_docking_state[steps, 3] # RH
             '''
 
+            # Warm up to get the robot to the initial position
+            if steps == 0:
+                for i in range(10):
+                    actions = policy(obs)
+                    obs, _, _, _ = env.step(actions)
+
             # agent stepping
             actions = policy(obs)
             # env stepping
@@ -216,42 +227,99 @@ def main():
             obs[:, 143] = planned_docking_state[steps, 0] # LH
             obs[:, 144] = planned_docking_state[steps, 1] # RF
             obs[:, 145] = planned_docking_state[steps, 3] # RH
+            '''
             
 
             # Get real trajectory
-            real_base_traj[0, steps, 0] = obs[0, 0].item() #TODO: Add orientation
-            real_base_traj[0, steps, 1] = obs[0, 1].item()
-            real_base_traj[0, steps, 2] = obs[0, 2].item()
+            if steps > 0:
+                real_base_traj[0, steps-1, 0] = obs[0, 0].item() #TODO: Add orientation
+                real_base_traj[0, steps-1, 1] = obs[0, 1].item()
+                real_base_traj[0, steps-1, 2] = obs[0, 2].item()
 
-            real_arm_traj[0, steps, 0] = obs[0, 133].item() # LH
-            real_arm_traj[0, steps, 1] = obs[0, 134].item()
-            real_arm_traj[0, steps, 2] = obs[0, 135].item()
+                real_arm_traj[0, steps-1, 0] = obs[0, 129].item() # LH
+                real_arm_traj[0, steps-1, 1] = obs[0, 130].item()
+                real_arm_traj[0, steps-1, 2] = obs[0, 131].item()
 
+                real_arm_traj[1, steps-1, 0] = obs[0, 132].item() # RF
+                real_arm_traj[1, steps-1, 1] = obs[0, 133].item()
+                real_arm_traj[1, steps-1, 2] = obs[0, 134].item()
 
-            real_arm_traj[1, steps, 0] = obs[0, 136].item() # RF
-            real_arm_traj[1, steps, 1] = obs[0, 137].item()
-            real_arm_traj[1, steps, 2] = obs[0, 138].item()
+                real_arm_traj[2, steps-1, 0] = obs[0, 126].item() # LF
+                real_arm_traj[2, steps-1, 1] = obs[0, 127].item()
+                real_arm_traj[2, steps-1, 2] = obs[0, 128].item()
 
-            real_arm_traj[2, steps, 0] = obs[0, 130].item() # LF
-            real_arm_traj[2, steps, 1] = obs[0, 131].item()
-            real_arm_traj[2, steps, 2] = obs[0, 132].item()
-
-            real_arm_traj[3, steps, 0] = obs[0, 139].item() # RH
-            real_arm_traj[3, steps, 1] = obs[0, 140].item()
-            real_arm_traj[3, steps, 2] = obs[0, 141].item()
-            '''
+                real_arm_traj[3, steps-1, 0] = obs[0, 135].item() # RH
+                real_arm_traj[3, steps-1, 1] = obs[0, 136].item()
+                real_arm_traj[3, steps-1, 2] = obs[0, 137].item()
 
             steps += 1
             if steps == num_points:
                 # Store last point
-                # TODO
-                plt.figure(figsize=(6, 6))
-                plt.plot(np.arange(num_points), planned_base_traj[0, :, 0].numpy(), 'b-')
-                plt.show()
+                real_base_traj[0, steps-1, 0] = obs[0, 0].item() #TODO: Add orientation
+                real_base_traj[0, steps-1, 1] = obs[0, 1].item()
+                real_base_traj[0, steps-1, 2] = obs[0, 2].item()
+
+                real_arm_traj[0, steps-1, 0] = obs[0, 129].item() # LH
+                real_arm_traj[0, steps-1, 1] = obs[0, 130].item()
+                real_arm_traj[0, steps-1, 2] = obs[0, 131].item()
+
+                real_arm_traj[1, steps-1, 0] = obs[0, 132].item() # RF
+                real_arm_traj[1, steps-1, 1] = obs[0, 133].item()
+                real_arm_traj[1, steps-1, 2] = obs[0, 134].item()
+
+                real_arm_traj[2, steps-1, 0] = obs[0, 126].item() # LF
+                real_arm_traj[2, steps-1, 1] = obs[0, 127].item()
+                real_arm_traj[2, steps-1, 2] = obs[0, 128].item()
+
+                real_arm_traj[3, steps-1, 0] = obs[0, 135].item() # RH
+                real_arm_traj[3, steps-1, 1] = obs[0, 136].item()
+                real_arm_traj[3, steps-1, 2] = obs[0, 137].item()
+
+                # Convert planned arm trajectory to world frame
+                for arm in range(4):
+                    planned_arm_traj[arm, :, :] += planned_base_traj[0, :, :3]
+                
+                # Plot trajectories
+                plot_trajectory(planned_base_traj, real_base_traj, leg_name=None)
+                plot_trajectory(planned_arm_traj, real_arm_traj, leg_name="LF")
+                plot_trajectory(planned_arm_traj, real_arm_traj, leg_name="RF")
+                plot_trajectory(planned_arm_traj, real_arm_traj, leg_name="LH")
+                plot_trajectory(planned_arm_traj, real_arm_traj, leg_name="RH")
                 break
 
     # close the simulator
     env.close()
+
+def plot_trajectory(planned_traj, real_traj, leg_name="LF"):
+    body_idx = 0
+    num_points = planned_traj.shape[1]
+    time_axis = np.arange(num_points)
+    if leg_name == None:
+        leg_name = "Base"
+        body_idx = 0 # Only for base
+    else:
+        body_idx = 0 + ["LH", "RF", "LF", "RH"].index(leg_name)
+    
+    # Convert to numpy
+    planned_traj = planned_traj.cpu().numpy()
+    real_traj = real_traj.cpu().numpy()
+
+    # Plot planned vs real trajectory
+    plt.figure()
+    plt.ylim(np.min(planned_traj[body_idx,:,:]) - 0.1, np.max(planned_traj[body_idx,:,:]) + 0.1)
+    plt.plot(time_axis, planned_traj[body_idx,:,0], 'm-', label='Planned X')
+    plt.plot(time_axis, real_traj[body_idx,:,0], 'r-', label='Real X')
+    plt.plot(time_axis, planned_traj[body_idx,:,1], 'g-', label='Planned Y')
+    plt.plot(time_axis, real_traj[body_idx,:,1], 'y-', label='Real Y')
+    plt.plot(time_axis, planned_traj[body_idx,:,2], 'c-', label='Planned Z')
+    plt.plot(time_axis, real_traj[body_idx,:,2], 'b-', label='Real Z')
+    plt.title(leg_name + ' Real vs Planned Trajectory')
+    plt.xlabel('Time (s)')
+    plt.ylabel('Position (m)')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
 
 def generate_semicircular_trajectory(center, radius, num_points):
     angles = torch.linspace(0, torch.tensor(3.14159265358979323846), num_points)
